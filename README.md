@@ -1,6 +1,13 @@
 # Straßenschlüssel NRW Germany
+This script is only usable for cities in North Rhine-Westphalia/Germany. 
+For better understanding the script and the readme are written in German language.
+
+The license for the script is `MIT`.
+The license for the data in the folder `./strassenschluessen` is `Deutschland Lizens zero 2.0`.
 
 ## Achtung: Bitte aktuell noch nicht nutzen
+
+
 ## Einleitung
 
 Mit diesem Skript ist es möglich alle Straßenschlüssel für Gemeinden in NRW zu generieren. Diese können mit dem Tag `de:strassenschluessel=` in osm an entsprechende Straßen ergänzt werden.
