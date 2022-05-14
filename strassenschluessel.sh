@@ -27,7 +27,7 @@ do
   if $(echo ${gemeinde} | grep -q -E '^G;[0-9]{2};[0-9];[0-9]{2};[0-9]{3};*' )
   then
     ## Extrahiere den Gemeindenamen und bereinige den von: Leerzeichen, Zeilenumbrüche und Sonderzeichen
-    gemeinde_name=$(echo $gemeinde | cut -d";" -f 6 | sed -e 's/\ /_/g' -e 's/.$//' -e 's/[\(\)\.\/\\]//g')
+    gemeinde_name=$(echo $gemeinde | cut -d";" -f 6 | sed -e 's/\ /_/g' -e 's/.$//' -e 's/[\(\)\.\/\\]//g' -e 's/ä/ae/g' -e 's/ö/oe/g' -e 's/ü/ue/g' -e 's/ß/ss/g')
 
     ## Extrahiere den Gemeindeschlüssel und setze diesen für anschließende Suche als pattern zusammen.
     gemeinde_pattern=$(echo $gemeinde |awk -F ";" '{ print $2";"$3";"$4";"$5 }')
