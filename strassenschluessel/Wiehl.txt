@@ -540,4 +540,5 @@
 05374000004814619;Höherdahlstraße
 05374000004814620;Weidenbachstraße
 05374000004814621;Bremigswiese
+05374000004814622;Am alten Schwimmbad
 05374000004899999;fiktiver Straßenschlüssel

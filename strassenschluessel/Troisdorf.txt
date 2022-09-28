@@ -793,3 +793,5 @@
 05382000006836958;Clara-Immerwahr-Straße
 05382000006836960;Monsignore-Bollenbach-Straße
 05382000006836961;Josef-Schäfer-Straße
+05382000006836962;Auf dem alten Graben
+05382000006836963;Im Weidenfeld

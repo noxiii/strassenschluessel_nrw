@@ -1375,6 +1375,7 @@
 05334000000203648;Campus-Boulevard
 05334000000203650;Doris-Schachner-Straße
 05334000000203651;Alois-Riedler-Straße
+05334000000203652;Maria-Lipp-Straße
 05334000000203653;Am Kraftversorgungsturm
 05334000000203654;Schloss-Rahe-Winkel
 05334000000203655;Alter Tivoli
@@ -1397,3 +1398,4 @@
 05334000000203678;Gabriele-Münter-Straße
 05334000000203680;Wassily-Kandinsky-Straße
 05334000000203681;Max-Ernst-Straße
+05334000000203682;An der alten Tuchfabrik

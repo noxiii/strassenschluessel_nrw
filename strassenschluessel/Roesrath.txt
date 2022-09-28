@@ -346,3 +346,4 @@
 05378000002807864;Maria-Montessori-Str.
 05378000002807865;Irmgard-Keun-Weg
 05378000002807870;Adolph-Kolping-Straße
+05378000002807871;Zur alten Dorfschänke

@@ -574,3 +574,4 @@
 05334000000401716;Toni-Baumanns-Straße
 05334000000401717;Anne-Frank-Straße
 05334000000401718;Elisabeth-Selbert-Straße
+05334000000401719;Johann-Klinkenberg-Straße
