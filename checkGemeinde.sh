@@ -47,7 +47,7 @@ fi
 dataDir="data/$name_filtered"
 missedFile="$dataDir/missed.csv"
 failureFile="$dataDir/failure.csv"
-noKeyFile="$dataDir/failure.csv"
+noKeyFile="$dataDir/nokey.csv"
 mkdir -p $dataDir
 echo -n "" > $missedFile
 echo -n "" > $failureFile
@@ -66,23 +66,12 @@ while read entry; do
       continue
    fi
 
-   if ! grep "$streetKey" "$file" | grep -q "$streetName"
+   if egrep ";$streetName\$" "$file" | grep -qv "$streetKey"
    then
       streetkeyEntry=$(grep "$streetName" $file)
       if [ -z "$streetkeyEntry" ]
       then
-      	echo "$entry" > $noKeyFile}
-      else
-         echo "$osmID;$streetkeyEntry" >> "${failureFile}"
-      fi
-   fi
-
-   if ! grep "$streetName" "$file" | grep -q "$streetKey"
-   then
-      streetkeyEntry=$(grep "$streetName" $file)
-      if [ -z "$streetkeyEntry" ]
-      then
-      	echo "$entry" > $noKeyFile}
+      	echo "$entry" > ${noKeyFile}
       else
          echo "$osmID;$streetkeyEntry" >> "${failureFile}"
       fi 
