@@ -33,7 +33,7 @@ do
     gemeinde_pattern=$(echo $gemeinde |awk -F ";" '{ print $2";"$3";"$4";"$5 }')
 
     ## Definiere Variable für Gemeinde Datei
-    file="${keydir}/${gemeinde_name}.txt"
+    file="${keydir}/${gemeinde_name}.csv"
 
     ## Suche nach dem Gemeindeschlüssel pattern und setze den Straßenschlüssel zusammen. 
     ## In NRW gibt es keine "Gemeindeverbände" daher wurden die Stellen 6. bis 9. durch 0000 aufgefüllt.
