@@ -6,6 +6,13 @@ name_filtered=$(echo $city | sed -e 's/\ /_/g' -e 's/[Ää]/ae/g' -e 's/[Öö]/o
 path='./strassenschluessel/'
 file="./strassenschluessel/${name_filtered}.csv"
 
+if [ -z "${city}" ]
+then
+   echo "Gebe einen Gemeindenamen mit"
+   echo "${0##*/} Düsseldorf"
+   exit 1
+fi
+
 if [ ! -f "${file}" ]
 then
 	echo "\"$city\" not exist: $file"
