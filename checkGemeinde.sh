@@ -9,7 +9,7 @@ file="./strassenschluessel/${name_filtered}.csv"
 if [ -z "${city}" ]
 then
    echo "Gebe einen Gemeindenamen mit"
-   echo "${0##*/} Düsseldorf"
+   echo "${0##*/} \"Düsseldorf\""
    exit 1
 fi
 
@@ -23,7 +23,7 @@ fi
 query='
 [out:csv("de:strassenschluessel",::id,name;false;";")];
 (
-  area[name="Ratingen"];
+  area[name="'$city'"];
   way["highway"]
      [!"de:strassenschluessel_exists"]
   	  ["highway"!="platform"]
