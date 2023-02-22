@@ -3,9 +3,7 @@ This script is only usable for cities in North Rhine-Westphalia/Germany.
 For better understanding the script and the readme are written in German language.
 
 The license for the script is `MIT`.
-The license for the data in the folder `./strassenschluessen` is `Deutschland Lizens zero 2.0`.
-
-## Achtung: Bitte aktuell noch nicht nutzen
+The license for the data in the folder `./strassenschluessel` is `Deutschland Lizens zero 2.0`.
 
 
 ## Einleitung
@@ -14,7 +12,7 @@ Mit diesem Skript ist es möglich alle Straßenschlüssel für Gemeinden in NRW 
 
 Das Script ist in der Form nur für NRW nutzbar. Um zu vermeiden das Fehlerhafte Daten in OSM eingetragen werden, bitte ich darum voher die Sclüssel für die entsprechende Gemeinde zu überprüfen und diese nicht automatisiert in OSM zu importieren.
 
-Dieses Projekt wurde im zuge der erfassung von Straßenschlüssel beim OSM Stammtisch Düseldorf erstellt.
+Dieses Script wurde im zuge der erfassung von Straßenschlüssel beim OSM Stammtisch Düseldorf erstellt.
 
 ## Entschlüsselung der Daten
 Das Land NRW stellt aktuelle Gebäudereferenz Daten über die OpenGeoData Portal als Gebäude referenz text Datei im CSV Format bereit. In dieser sind auch Daten enthalten über diese entsprechen die Straßenschlüssel ermittelt werden können.
@@ -73,7 +71,7 @@ gebref_schluessel.txt
 Der in OSM verwendete Straßenschlüssel ist eine Kombination aus den oben genannten Werten. Mehr dazu auf der Entsprechenden Wiki Seite: 
 [DE:Key:de:strassenschluessel](https://wiki.openstreetmap.org/wiki/DE:Key:de:strassenschluessel)
 
-In Nordrhein Westfahlen gibt anders als in den meisten anderen Bundesländern keine Gemeindeverbände. Dieser Wert wird durch Nullen aufgefüllt, um einen OSM weiten Standart von 17 Ziffern zu haben. (Achtung: dies muss noch geklärt werden)
+In Nordrhein Westfahlen gibt anders als in manchen anderen Bundesländern keine Gemeindeverbände. Dieser Wert wird durch vier Nullen aufgefüllt, um einen OSM weiten Standart von 17 Ziffern zu haben.
 
 Straßenschlüssel 
 
