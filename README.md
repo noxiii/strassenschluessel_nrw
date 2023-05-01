@@ -15,6 +15,8 @@ Das Script ist in der Form nur für NRW nutzbar. Um zu vermeiden das Fehlerhafte
 Dieses Script wurde im zuge der erfassung von Straßenschlüssel beim OSM Stammtisch Düseldorf erstellt.
 
 ## Entschlüsselung der Daten
+> **Warning**
+> Das Daten Schema wurde auf v3.0 aktuallisiert. Readme 
 Das Land NRW stellt aktuelle Gebäudereferenz Daten über die OpenGeoData Portal als Gebäude referenz text Datei im CSV Format bereit. In dieser sind auch Daten enthalten über diese entsprechen die Straßenschlüssel ermittelt werden können.
 
 [Gebäudereferenz GeoPortal NRW](https://www.opengeodata.nrw.de/produkte/geobasis/lk/akt/gebref_txt/)
