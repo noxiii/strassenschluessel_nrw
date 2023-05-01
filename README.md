@@ -16,7 +16,8 @@ Dieses Script wurde im zuge der erfassung von Straßenschlüssel beim OSM Stammt
 
 ## Entschlüsselung der Daten
 > **Warning**
-> Das Daten Schema wurde auf v3.0 aktuallisiert. Readme 
+> Das Daten Schema wurde auf v3.0 aktuallisiert. Readme muss aktualisiert werden.
+
 Das Land NRW stellt aktuelle Gebäudereferenz Daten über die OpenGeoData Portal als Gebäude referenz text Datei im CSV Format bereit. In dieser sind auch Daten enthalten über diese entsprechen die Straßenschlüssel ermittelt werden können.
 
 [Gebäudereferenz GeoPortal NRW](https://www.opengeodata.nrw.de/produkte/geobasis/lk/akt/gebref_txt/)
