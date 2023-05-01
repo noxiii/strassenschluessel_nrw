@@ -37,7 +37,7 @@ overpass=$(mktemp)
 
 curl -d "${query}" -X POST http://overpass-api.de/api/interpreter > $overpass
 
-pat="[0-9]+\;[0-9]+\;.*"
+pat="\;[0-9]+\;.*"
 if [[ ! $(head -n1 $overpass) =~ $pat ]]; then
 	echo "Downloaded file not ok"
 	head -n10 $overpass 
