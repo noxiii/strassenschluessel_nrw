@@ -113,6 +113,35 @@ class streets_of_nrw:
                         for data in member[0]:
                             print(data.tag, ': ', data.text)
 
+    def speicher_strassen(self):
+        print("Speicher Straßen")
+        for gemeinde in self.gemeinden:
+
+            name = self.cleanup_text(gemeinde['name'])
+            gemeinde_schluessel = gemeinde['schluessel']
+            strassen = sorted(set(self.strassen[gemeinde_schluessel]))
+            print(f"Speicher {name} mit {len(strassen)} Straßen")
+            with open(f"strassenschluessel/{name}.csv", "w") as file:
+                for string in strassen:
+                    file.write(f"{string}\n")
+
+    def cleanup_text(self, text):
+        # Leerzeichen durch Unterstriche ersetzen
+        text = re.sub(r'\s', '_', text)
+
+        # Klammern, Punkt, Schrägstrich und Backslash entfernen
+        text = re.sub(r'[\(\).\/\\]', '', text)
+
+        # Umlaute ersetzen
+        text = re.sub(r'[Ää]', 'ae', text)
+        text = re.sub(r'[Öö]', 'oe', text)
+        text = re.sub(r'[Üü]', 'ue', text)
+
+        # ß durch ss ersetzen
+        text = re.sub(r'ß', 'ss', text)
+
+        return text
+    
     def gebaeude(self):
         tree = ET.parse('download/gebaeude.xml')
         root = tree.getroot()
@@ -187,4 +216,4 @@ if __name__ == '__main__':
     streets.gemeinde()
     streets.strasse()
     streets.gebaeude()
-    streets.close()
+    streets.speicher_strassen()
