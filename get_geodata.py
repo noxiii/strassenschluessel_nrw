@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 import json
 import sqlite3
+import re
 from pyproj import Transformer
 from tqdm import tqdm
 
@@ -8,23 +9,15 @@ from tqdm import tqdm
 class streets_of_nrw:
     def __init__(self):
         self.gemeinden = []
-        self.strassen = []
+        self.strassen = {}
         self.gebaeuden = []
-
-        self.con = sqlite3.connect("strassenschluessel_nrw.db")
-        self.cur = self.con.cursor()
-        self.cur.execute(
-            'CREATE TABLE IF NOT EXISTS gemeinden(schluessel TEXT PRIMARY KEY, name TEXT)')
-        self.cur.execute(
-            'CREATE TABLE IF NOT EXISTS strassen(schluessel TEXT PRIMARY KEY, gemeinde_id TEXT, name TEXT, FOREIGN KEY (gemeinde_id) REFERENCES gemeinden(id))')
-        self.cur.execute('CREATE TABLE IF NOT EXISTS buildings(schluessel TEXT PRIMARY KEY, strasse_id TEXT, hausnummer TEXT, adressierungszusatz TEXT, lat TEXT, lon TEXT, FOREIGN KEY (strasse_id) REFERENCES strassen(id))')
 
     def close(self):
         self.con.close()
 
     def gemeinde(self):
         print('Start load gemeinde')
-        tree = ET.parse('gemeinde.xml')
+        tree = ET.parse('download/gemeinde.xml')
         root = tree.getroot()
         print('progress gemeinden')
 
@@ -54,24 +47,14 @@ class streets_of_nrw:
                         gemeinde['gemeindeverband_key'],
                         gemeinde['gemeinde_key'],
                     ])
-
-                    self.cur.execute(
-                        'SELECT schluessel FROM gemeinden WHERE schluessel = ?', (gemeinde['schluessel'],))
-                    schluessel_exist = self.cur.fetchall()
-                    if len(schluessel_exist) == 0:
-                        self.cur.execute(
-                            f'INSERT INTO gemeinden VALUES(?, ?)', (gemeinde["schluessel"], gemeinde["name"],))
-                        self.con.commit()
-                    else:
-                        self.cur.execute('UPDATE gemeinden SET name = ? WHERE schluessel = ?', (
-                            gemeinde['name'], schluessel_exist[0][0],))
-                        self.con.commit()
-
-    def strassennamen_repair(name):
-        pass
+                    if gemeinde['land_key'] != "05":
+                        print(f"{gemeinde['name']} - ")
+                        continue
+                    self.gemeinden.append(gemeinde)
+                    self.strassen[gemeinde['schluessel']] = []
 
     def strasse(self):
-        tree = ET.parse('strassen.xml')
+        tree = ET.parse('download/strassen.xml')
         root = tree.getroot()
 
         print('progress strassen')
@@ -110,35 +93,28 @@ class streets_of_nrw:
                             strasse['gemeinde_key'],
                             strasse['lage_key'],
                         ])
+                        
+                        if strasse['land_key'] != "05":
+                            print(f"{strasse['name']} - {strasse['land_key']}")
+                            continue
 
-                        self.cur.execute(
-                            'SELECT * FROM strassen WHERE schluessel = ?', (strasse['schluessel'],))
-                        schluessel_exist = self.cur.fetchall()
-                        self.cur.execute(
-                            'SELECT schluessel FROM gemeinden WHERE schluessel = ?', (strasse['schluessel_gemeinde'],))
-                        gemeinde_schluessel = self.cur.fetchall()
+                        if not re.match("^[0-9]+$", strasse['lage_key']):
+                            print("keine zahl")
+                            continue
 
-                        if len(schluessel_exist) == 0:
+                        if strasse['schluessel_gemeinde'] not in self.strassen:
+                            self.strassen[strasse['schluessel_gemeinde']] = []
 
-                            sql_values = (
-                                strasse["schluessel"], gemeinde_schluessel[0][0], strasse["name"],)
-                            self.cur.execute(
-                                f'INSERT INTO strassen VALUES(?, ?, ?)', sql_values)
-                            self.con.commit()
-                        else:
-                            if schluessel_exist[0][1] != schluessel_exist[0][0] and schluessel_exist[0][2] != strasse['name']:
-                                sql_values = (
-                                    strasse['name'], schluessel_exist[0][0],)
-                                self.cur.execute(
-                                    "UPDATE strassen SET name = ? WHERE schluessel = ?", sql_values)
-                                self.con.commit()
+                        line = f"{strasse['schluessel']};{strasse['name']}"
+                        self.strassen[strasse['schluessel_gemeinde']].append(line)
+
                     except Exception as e:
                         print("Error: Insert: ", e)
                         for data in member[0]:
                             print(data.tag, ': ', data.text)
 
     def gebaeude(self):
-        tree = ET.parse('gebaeude.xml')
+        tree = ET.parse('download/gebaeude.xml')
         root = tree.getroot()
         for featureCollection in tqdm(root):
             if featureCollection.tag.endswith('member'):
@@ -194,30 +170,6 @@ class streets_of_nrw:
                         gebaeude['hausnummer_key'],
                         gebaeude['adressierungszusatz_key'],
                     ])
-
-                    self.cur.execute(
-                        'SELECT * FROM buildings WHERE schluessel = ?', (gebaeude['schluessel'],))
-                    building_exist = self.cur.fetchall()
-                    self.cur.execute(
-                        'SELECT schluessel FROM strassen WHERE schluessel = ?', (gebaeude['schluessel_strasse'],))
-                    strasse_schluessel = self.cur.fetchall()
-#
-                    if len(building_exist) == 0:
-                        #self.cur.execute('schluessel TEXT     strasse_id TEXT, hausnummer TEXT,  lat TEXT, lon TEXT, FOREIGN KEY (strasse_id) REFERENCES strassen(id))')
-                        #
-                        sql_values = (gebaeude["schluessel"], strasse_schluessel[0][0], gebaeude["hausnummer_key"],
-                                      gebaeude['adressierungszusatz_key'], gebaeude['lat'], gebaeude['lon'])
-                        #print("test", sql_values)
-                        self.cur.execute(
-                            f'INSERT INTO buildings VALUES(?, ?, ?, ?, ?, ?)', sql_values)
-                        self.con.commit()
-                    else:
-                        if building_exist[0][2] != gebaeude["hausnummer_key"] and building_exist[0][3] != gebaeude['adressierungszusatz_key'] and building_exist[0][4] != gebaeude['lon'] and building_exist[0][5] != gebaeude['lat']:
-                            sql_values = (gebaeude["hausnummer_key"], gebaeude['adressierungszusatz_key'],
-                                          gebaeude['lat'], gebaeude['lon'], gebaeude["schluessel"])
-                            self.cur.execute(
-                                "UPDATE buildings SET hausnummer = ?, adressierungszusatz = ?, lat = ?, lon = ? WHERE schluessel = ?", sql_values)
-                            self.con.commit()
 
                 except Exception as e:
                     print("Error: Insert: ", e)
