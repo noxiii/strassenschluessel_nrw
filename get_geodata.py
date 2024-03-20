@@ -258,14 +258,12 @@ class streets_of_nrw:
         print("split multi housenumbers")
         # Kombiniere die DataFrames in einer Liste zu einem einzigen DataFrame
 
-
         # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf' mit Komma-separierten Werten
         comma_mask = overpass_gdf['addr:housenumber'].str.contains(',')
         split_overpass_gdf = overpass_gdf[comma_mask].copy()
         split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(',')
         split_overpass_gdf = split_overpass_gdf.explode('addr:housenumber')
         overpass_gdf = pd.concat([overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
-
 
         # Erstelle eine separate Zeile für jede Hausnummer im "von-bis"-Format
         range_mask = overpass_gdf['addr:housenumber'].str.contains('-')
@@ -274,18 +272,13 @@ class streets_of_nrw:
         range_overpass_gdf = range_overpass_gdf.explode('addr:housenumber')
         overpass_gdf = pd.concat([overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)
 
-
         # Lade das vorhandene GeoJSON
         print("load alkis data")
         alkis_gdf = gpd.read_file(f'data/Hausnummern/{stadt}_daten.geojson')
         alkis_gdf = alkis_gdf.rename(columns={'geometry': 'geometry_alkis'})
 
-
-
-
         # Merge die beiden GeoDataFrames
         merged_gdf = pd.merge(alkis_gdf, overpass_gdf, on=['addr:street', 'addr:housenumber'], how='outer', indicator=True)
-
 
         # Extrahiere Straßennamen und Hausnummern, sortiere nach addr:street
         missing_data = merged_gdf[merged_gdf['_merge'] == 'left_only'][['addr:street', 'addr:housenumber', 'geometry_alkis', '_merge']]
@@ -300,11 +293,9 @@ class streets_of_nrw:
         print(f'Merged: {merged_gdf.columns}')
         print(f'Missing Merged: {missing_data_gdf.columns}')
 
-
         missing_clount = len(missing_data_gdf)
         print(f"Es wurden {missing_clount} Hausnummern gefunden")
         print("Columns in missing_data_gdf:", missing_data_gdf.columns)
-
 
 
         # Zeige die ersten 20 Einträge für 'overpass_gdf' an
@@ -330,7 +321,6 @@ class streets_of_nrw:
         alkis_gdf = alkis_gdf.rename(columns={'geometry_alkis': 'geometry'})
         alkis_gdf_filtered = alkis_gdf[['addr:street', 'addr:housenumber', 'geometry' ]].copy()
         alkis_gdf_filtered.to_file(f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
-
 
     def gebaeude(self):
         # Die Gebäude aus alkis sind unvollständig, da der abruf limitiert ist. Für vorschläge bin ich offen :)
