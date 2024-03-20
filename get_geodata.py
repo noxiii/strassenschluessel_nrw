@@ -6,13 +6,13 @@ from pyproj import Transformer
 from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 from pyproj import Proj, Transformer
 import overpass
 import geopy.distance
 import shapely.geometry as geom
 import geojson
-from shapely.geometry import Point, LineString
+
 
 class streets_of_nrw:
     def __init__(self):
