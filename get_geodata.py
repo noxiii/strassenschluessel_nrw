@@ -213,6 +213,17 @@ class streets_of_nrw:
             stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(r'Str.', 'Straße', case=False)
             stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(r'Pl.', 'Platz', case=False)
 
+            # In städten wie Köln und Duisburg ist ein Straßenname nicht eindeutig. 
+            # Straßennamen können in diesen Städten über die Stadt verteilt mehrfach vorkommen und nur.
+            stadt_gdf['strassenschluessel'] = ''.join([
+                stadt_gdf['landschl'],
+                stadt_gdf['regbezschl'],
+                stadt_gdf['kreisschl'],
+                '0000',
+                stadt_gdf['gmdschl'],
+                stadt_gdf['strschl'],
+            ])
+
             stadt_clear = "".join(ch for ch in stadt if ch.isalnum())
 
             # Speichere als GeoJSON
@@ -306,7 +317,7 @@ class streets_of_nrw:
         # Zeige die ersten 20 Einträge für 'alkis_gdf' an
         print("\nALKIS Data (Sorted):")
         alkis_gdf_sorted = alkis_gdf.sort_values(by='addr:street').head(20)
-        print(alkis_gdf_sorted[['addr:street', 'addr:housenumber', 'geometry_alkis']])
+        print(alkis_gdf_sorted[['addr:street', 'addr:housenumber', 'geometry_alkis', 'strassenschluessel']])
 
         print("\nMissed Data (Sorted):")
         missing_gdf_sorted = missing_data_gdf.sort_values(by='addr:street').head(20)
