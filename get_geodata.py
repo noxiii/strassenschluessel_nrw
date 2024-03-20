@@ -191,7 +191,7 @@ class streets_of_nrw:
         df.columns = column_names
         
         # UTM-Konvertierung in Längen- und Breitengrad direkt im DataFrame
-        utm_proj = Proj(init=f'epsg:32632')  # Beispiel für UTM-Zone 32
+        utm_proj = Proj(init='epsg:32632')  # Beispiel für UTM-Zone 32
         latlon_proj = Proj(init='epsg:4326')  # WGS84 Längen- und Breitengrad
         
         transformer = Transformer.from_proj(utm_proj, latlon_proj)
