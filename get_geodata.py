@@ -52,15 +52,6 @@ class streets_of_nrw:
 
         return text
    
-#    def convert_coordinates(self, utm_east, utm_north):
-#        # Definiere die Projektionen für UTM und Längen- und Breitengrad
-#        utm_proj = Proj(init='epsg:25832')  # 'EPSG:25832' ist der UTM-Zonen-Code
-#        latlon_proj = Proj(init='epsg:4326')  # 'EPSG:4326' ist der Code für WGS84 Längen- und Breitengrad
-#
-#        # Führe die Umrechnung durch
-#        lon, lat = transform(utm_proj, latlon_proj, utm_east, utm_north)
-#        return lon, lat
-
     def gebref(self):
         dtype_mapping = {13: str, 15: str}
         df = pd.read_csv('gebref/gebref.txt', delimiter=';', header=None, dtype=dtype_mapping)
