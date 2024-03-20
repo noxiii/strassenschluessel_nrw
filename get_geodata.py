@@ -13,6 +13,8 @@ import geopy.distance
 import shapely.geometry as geom
 import geojson
 from owslib.wfs import WebFeatureService
+from requests import Request
+from urllib.parse import unquote
 
 
 class streets_of_nrw:
@@ -53,30 +55,50 @@ class streets_of_nrw:
 
         return text
 
-    def get_wfs_nrw():
+    def get_wfs_nrw(self, type, gemeinde=None):
         # URL des WFS-Dienstes
-        wfs_url = 'https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert?service=WFS'
+        # https://www.bezreg-koeln.nrw.de/system/files/media/document/file/geobasis_webdienste_anleitung_wfs.pdf
 
-        # Verbindung zum WFS herstellen
-        wfs = WebFeatureService(wfs_url, version='2.0.0')
+        # https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert?service=WFS&version=2.0.0&request=getFeature&TYPENAMES=adv:AX_Gemeinde
+        # https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert?service=WFS&version=2.0.0&request=getFeature&TYPENAMES=adv:AX_LagebezeichnungKatalogeintrag
+        # https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert?service=WFS&version=2.0.0&request=getFeature&TYPENAMES=adv:AX_GeoreferenzierteGebaeudeadresse
 
-        # Liste der verfügbaren Layer abrufen (normalerweise nur einen Layer)
-        print("Verfügbare Layer:")
-        for layer_name in list(wfs.contents):
-            print(layer_name)
+        typenames = {
+            'gemeinde': 'adv:AX_Gemeinde',
+            'gebaeude': 'adv:AX_GeoreferenzierteGebaeudeadresse',
+            'strassen': 'adv:AX_LagebezeichnungKatalogeintrag',
+        }
 
-        # Typnamen des Layers
-        layer_name = 'adv:AX_LagebezeichnungKatalogeintrag'
+        
+        wfs_url = 'https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert'
 
-        # Beispielabfrage für den Layer
-        response = wfs.getfeature(typename=layer_name, bbox=(-180, -90, 180, 90), maxfeatures=10)
 
-        # Die Antwort verarbeiten
-        print("Feature-Informationen:")
-        for feature in response:
-            print(feature)
-   
+        # Specify the parameters for fetching the data
+        # Count: specificies amount of rows to return (e.g. 10000 or 100)
+        # startIndex: specifies at which offset to start returning rows
+        params = {
+            'service': 'WFS',
+            'version': "2.0.0",
+            'request': 'GetFeature',
+            'TYPENAMES': typenames[type],
+            'count': 100,
+            'startIndex': 0,
+        }
+        if type == 'strassen':
+            if gemeinde:
+                pass
+                #params['FILER'] = '<Filter><PropertyIsEqualTo><PropertyName>ortsnamePost</PropertyName><Literal>Ratingen</Literal></PropertyIsEqualTo></Filter>'
+                #params['FILTER'] = '<Filter><PropertyIsEqualTo><ValueReference>schluesselGesamt</ValueReference><Literal>591100004845</Literal></PropertyIsEqualTo></Filter>'
+                #params['FILTER'] = f'<Filter><PropertyIsEqualTo><PropertyName>bezeichnung</PropertyName><Literal>{gemeinde}</Literal></PropertyIsEqualTo></Filter>'
+        
+        # Parse the URL with parameters
+        wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
+        print(wfs_request_url)
 
+        # Read data from URL
+        data = gpd.read_file(unquote(wfs_request_url))
+        print(data)
+        return data
 
     def gemeinde(self):
         print('Start load gemeinde')
@@ -119,6 +141,7 @@ class streets_of_nrw:
                     else:
                         self.cur.execute('UPDATE gemeinden SET name = ? WHERE schluessel = ?', (gemeinde['name'], schluessel_exist[0][0],))
                         self.con.commit()
+
     def strassennamen_repair(name):
         pass
     def strasse(self):
@@ -453,10 +476,12 @@ class streets_of_nrw:
 
 if __name__ == '__main__':
     streets = streets_of_nrw()
+    streets.get_wfs_nrw("gemeinde")
+    streets.get_wfs_nrw('strassen', gemeinde='Ratingen')
     # streets.gemeinde()
     # streets.strasse()
     # streets.gebaeude()
     # streets.speicher_strassen()
 
     # streets.gebref()
-    streets.check_with_overpass("Ratingen")
+    # streets.check_with_overpass("Ratingen")
