@@ -21,6 +21,7 @@ from urllib.parse import unquote
 
 pd.set_option('display.max_columns', None)
 
+
 class streets_of_nrw:
     def __init__(self):
         self.gemeinden = []
@@ -72,7 +73,7 @@ class streets_of_nrw:
             'gebaeude': 'adv:AX_GeoreferenzierteGebaeudeadresse',
             'strassen': 'adv:AX_LagebezeichnungKatalogeintrag',
         }
-  
+
         wfs_url = 'https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert'
 
         # Specify the parameters for fetching the data
@@ -86,7 +87,7 @@ class streets_of_nrw:
             'startIndex': 0,
             'count': 10000,
         }
-        total_count = 4000 
+        total_count = 4000
         start_index = 0
 
         gdf_total = gpd.GeoDataFrame()
@@ -94,10 +95,12 @@ class streets_of_nrw:
             params['startIndex'] = start_index
             start_index += params['count']
             print(start_index)
-            wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
+            wfs_request_url = Request(
+                'GET', wfs_url, params=params).prepare().url
             print(wfs_request_url)
             gdf_part = gpd.read_file(unquote(wfs_request_url))
-            gdf_total = gpd.GeoDataFrame(pd.concat([gdf_total, gdf_part], ignore_index=True), crs=gdf_part.crs)
+            gdf_total = gpd.GeoDataFrame(
+                pd.concat([gdf_total, gdf_part], ignore_index=True), crs=gdf_part.crs)
             gdf_count = len(gdf_part)
             print(f'collect {gdf_count} lines')
             print(gdf_total)
@@ -107,16 +110,15 @@ class streets_of_nrw:
                 break
 
         return gdf_total
-    
+
     def get_nrw_api(self, collection_name):
         url = 'https://ogc-api.nrw.de/lika/v1/'
         w = Features(url)
         collections = w.collections()
-        #for collect in collections:
+        # for collect in collections:
         #    print(collect)
         collection = w.collection(collection_name)
         id = collection['id']
-      
 
     def gemeinde(self):
         print('Start load gemeinde')
@@ -125,7 +127,7 @@ class streets_of_nrw:
         print('progress gemeinden')
 
         for featureCollection in tqdm(root):
-        
+
             gemeinde = {}
             gemeinde['gemeindeverband_key'] = '0000'
 
@@ -149,19 +151,23 @@ class streets_of_nrw:
                         gemeinde['kreis_key'],
                         gemeinde['gemeindeverband_key'],
                         gemeinde['gemeinde_key'],
-                        ])
+                    ])
 
-                    self.cur.execute('SELECT schluessel FROM gemeinden WHERE schluessel = ?', (gemeinde['schluessel'],))
-                    schluessel_exist=self.cur.fetchall()
-                    if len(schluessel_exist)==0:
-                            self.cur.execute(f'INSERT INTO gemeinden VALUES(?, ?)', (gemeinde["schluessel"], gemeinde["name"],))
-                            self.con.commit()
+                    self.cur.execute(
+                        'SELECT schluessel FROM gemeinden WHERE schluessel = ?', (gemeinde['schluessel'],))
+                    schluessel_exist = self.cur.fetchall()
+                    if len(schluessel_exist) == 0:
+                        self.cur.execute(
+                            f'INSERT INTO gemeinden VALUES(?, ?)', (gemeinde["schluessel"], gemeinde["name"],))
+                        self.con.commit()
                     else:
-                        self.cur.execute('UPDATE gemeinden SET name = ? WHERE schluessel = ?', (gemeinde['name'], schluessel_exist[0][0],))
+                        self.cur.execute('UPDATE gemeinden SET name = ? WHERE schluessel = ?', (
+                            gemeinde['name'], schluessel_exist[0][0],))
                         self.con.commit()
 
     def strassennamen_repair(name):
         pass
+
     def strasse(self):
         tree = ET.parse('strassen.xml')
         root = tree.getroot()
@@ -191,41 +197,44 @@ class streets_of_nrw:
                             strasse['land_key'],
                             strasse['rgbz_key'],
                             strasse['kreis_key'],
-                            strasse['gemeindeverband_key'], # Gemeindeverband
+                            strasse['gemeindeverband_key'],  # Gemeindeverband
                             strasse['gemeinde_key'],
-                            ])
+                        ])
                         strasse['schluessel'] = ''.join([
                             strasse['land_key'],
                             strasse['rgbz_key'],
                             strasse['kreis_key'],
-                            strasse['gemeindeverband_key'], # Gemeindeverband
+                            strasse['gemeindeverband_key'],  # Gemeindeverband
                             strasse['gemeinde_key'],
                             strasse['lage_key'],
-                            ])
+                        ])
 
+                        self.cur.execute(
+                            'SELECT * FROM strassen WHERE schluessel = ?', (strasse['schluessel'],))
+                        schluessel_exist = self.cur.fetchall()
+                        self.cur.execute(
+                            'SELECT schluessel FROM gemeinden WHERE schluessel = ?', (strasse['schluessel_gemeinde'],))
+                        gemeinde_schluessel = self.cur.fetchall()
 
-                        self.cur.execute('SELECT * FROM strassen WHERE schluessel = ?', (strasse['schluessel'],))
-                        schluessel_exist=self.cur.fetchall()
-                        self.cur.execute('SELECT schluessel FROM gemeinden WHERE schluessel = ?', (strasse['schluessel_gemeinde'],))
-                        gemeinde_schluessel=self.cur.fetchall()
+                        if len(schluessel_exist) == 0:
 
-                        if len(schluessel_exist)==0:
-
-                            sql_values = (strasse["schluessel"], gemeinde_schluessel[0][0], strasse["name"],)
-                            self.cur.execute(f'INSERT INTO strassen VALUES(?, ?, ?)', sql_values)
+                            sql_values = (
+                                strasse["schluessel"], gemeinde_schluessel[0][0], strasse["name"],)
+                            self.cur.execute(
+                                f'INSERT INTO strassen VALUES(?, ?, ?)', sql_values)
                             self.con.commit()
                         else:
                             if schluessel_exist[0][1] != schluessel_exist[0][0] and schluessel_exist[0][2] != strasse['name']:
-                                sql_values = (strasse['name'], schluessel_exist[0][0],)
-                                self.cur.execute("UPDATE strassen SET name = ? WHERE schluessel = ?", sql_values)
+                                sql_values = (
+                                    strasse['name'], schluessel_exist[0][0],)
+                                self.cur.execute(
+                                    "UPDATE strassen SET name = ? WHERE schluessel = ?", sql_values)
                                 self.con.commit()
                     except Exception as e:
                         print("Error: Insert: ", e)
                         for data in member[0]:
                             print(data.tag, ': ', data.text)
 
-
-    
     def gebaeude(self):
         tree = ET.parse('gebaeude.xml')
         root = tree.getroot()
@@ -235,7 +244,7 @@ class streets_of_nrw:
                 gebaeude = {}
                 gebaeude['gemeindeverband_key'] = '0000'
                 gebaeude['adressierungszusatz_key'] = ''
-               
+
                 try:
                     for member in featureCollection[0]:
                         if member.tag.endswith('land'):
@@ -252,20 +261,19 @@ class streets_of_nrw:
                             gebaeude['hausnummer_key'] = member.text
                         if member.tag.endswith('adressierungszusatz'):
                             gebaeude['adressierungszusatz_key'] = member.text
-                                            
+
                         if member.tag.endswith('position'):
                             for position in member[0]:
                                 if position.tag.endswith('pos'):
                                     gebaeude['EPSG:4326'] = position.text
-                                    transformer = Transformer.from_crs("EPSG:3857", "EPSG:4326")
+                                    transformer = Transformer.from_crs(
+                                        "EPSG:3857", "EPSG:4326")
                                     c1, c2 = position.text.split()
-   
+
                                     lat, lon = transformer.transform(c1, c2)
                                     gebaeude['lat'] = lat
                                     gebaeude['lon'] = lon
-                                    
-                                
-    
+
                     gebaeude['schluessel_strasse'] = ''.join([
                         gebaeude['land_key'],
                         gebaeude['rgbz_key'],
@@ -273,7 +281,7 @@ class streets_of_nrw:
                         gebaeude['gemeindeverband_key'],
                         gebaeude['gemeinde_key'],
                         gebaeude['strassenschluessel_key'],
-                        ])                               
+                    ])
                     gebaeude['schluessel'] = ''.join([
                         gebaeude['land_key'],
                         gebaeude['rgbz_key'],
@@ -283,40 +291,47 @@ class streets_of_nrw:
                         gebaeude['strassenschluessel_key'],
                         gebaeude['hausnummer_key'],
                         gebaeude['adressierungszusatz_key'],
-                        ])
-    
-                    self.cur.execute('SELECT * FROM buildings WHERE schluessel = ?', (gebaeude['schluessel'],))
-                    building_exist=self.cur.fetchall()
-                    self.cur.execute('SELECT schluessel FROM strassen WHERE schluessel = ?', (gebaeude['schluessel_strasse'],))
-                    strasse_schluessel=self.cur.fetchall()
-#   
-                    if len(building_exist)==0:
+                    ])
+
+                    self.cur.execute(
+                        'SELECT * FROM buildings WHERE schluessel = ?', (gebaeude['schluessel'],))
+                    building_exist = self.cur.fetchall()
+                    self.cur.execute(
+                        'SELECT schluessel FROM strassen WHERE schluessel = ?', (gebaeude['schluessel_strasse'],))
+                    strasse_schluessel = self.cur.fetchall()
+#
+                    if len(building_exist) == 0:
                         #self.cur.execute('schluessel TEXT     strasse_id TEXT, hausnummer TEXT,  lat TEXT, lon TEXT, FOREIGN KEY (strasse_id) REFERENCES strassen(id))')
-#   
-                        sql_values = (gebaeude["schluessel"], strasse_schluessel[0][0], gebaeude["hausnummer_key"], gebaeude['adressierungszusatz_key'], gebaeude['lat'], gebaeude['lon'])
+                        #
+                        sql_values = (gebaeude["schluessel"], strasse_schluessel[0][0], gebaeude["hausnummer_key"],
+                                      gebaeude['adressierungszusatz_key'], gebaeude['lat'], gebaeude['lon'])
                         #print("test", sql_values)
-                        self.cur.execute(f'INSERT INTO buildings VALUES(?, ?, ?, ?, ?, ?)', sql_values)
+                        self.cur.execute(
+                            f'INSERT INTO buildings VALUES(?, ?, ?, ?, ?, ?)', sql_values)
                         self.con.commit()
                     else:
                         if building_exist[0][2] != gebaeude["hausnummer_key"] and building_exist[0][3] != gebaeude['adressierungszusatz_key'] and building_exist[0][4] != gebaeude['lon'] and building_exist[0][5] != gebaeude['lat']:
-                            sql_values = (gebaeude["hausnummer_key"], gebaeude['adressierungszusatz_key'], gebaeude['lat'], gebaeude['lon'], gebaeude["schluessel"])
-                            self.cur.execute("UPDATE buildings SET hausnummer = ?, adressierungszusatz = ?, lat = ?, lon = ? WHERE schluessel = ?", sql_values)
+                            sql_values = (gebaeude["hausnummer_key"], gebaeude['adressierungszusatz_key'],
+                                          gebaeude['lat'], gebaeude['lon'], gebaeude["schluessel"])
+                            self.cur.execute(
+                                "UPDATE buildings SET hausnummer = ?, adressierungszusatz = ?, lat = ?, lon = ? WHERE schluessel = ?", sql_values)
                             self.con.commit()
-                        
+
                 except Exception as e:
                     print("Error: Insert: ", e)
                     for data in member:
                         print(data.tag, ': ', data.text)
-                
-                #print(gebaeude)
-                #return
-                        
+
+                # print(gebaeude)
+                # return
+
     def get_building_json(self):
         pass
 
     def gebref(self):
         dtype_mapping = {13: str, 15: str}
-        df = pd.read_csv('gebref/gebref.txt', delimiter=';', header=None, dtype=dtype_mapping)
+        df = pd.read_csv('gebref/gebref.txt', delimiter=';',
+                         header=None, dtype=dtype_mapping)
 
         column_names = [
             'nba',  #
@@ -344,31 +359,36 @@ class streets_of_nrw:
 
         # Weise die manuell festgelegten Spaltennamen zu
         df.columns = column_names
-        
+
         # UTM-Konvertierung in Längen- und Breitengrad direkt im DataFrame
         utm_proj = Proj(init='epsg:32632')  # Beispiel für UTM-Zone 32
         latlon_proj = Proj(init='epsg:4326')  # WGS84 Längen- und Breitengrad
-        
+
         transformer = Transformer.from_proj(utm_proj, latlon_proj)
 
         # Wende die Transformation auf alle Zeilen im DataFrame an
-        lon, lat = transformer.transform(df['UTM_East'].to_list(), df['UTM_North'].to_list())
+        lon, lat = transformer.transform(
+            df['UTM_East'].to_list(), df['UTM_North'].to_list())
         df['lon'], df['lat'] = lon, lat
 
         # Erstelle eine GeoDataFrame
         geometry = [Point(xy) for xy in zip(df['lon'], df['lat'])]
-        gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')  # 'EPSG:4326' ist der Code für WGS84
+        # 'EPSG:4326' ist der Code für WGS84
+        gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')
 
         # Gruppiere nach Stadt und erstelle separate GeoJSON-Dateien
         for stadt, daten in gdf.groupby('addr:city'):
             print('start: ' + stadt)
             stadt_gdf = gpd.GeoDataFrame(daten)
             #  stadt_gdf["properties"]["source"] = "opengeodata.nrw.de (c) Deutschland Lizens zero"
-            stadt_gdf['addr:housenumber'] = stadt_gdf['hausnummer'] + stadt_gdf['zusatz'].fillna('').astype(str)
-            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(r'Str.', 'Straße', case=False)
-            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(r'Pl.', 'Platz', case=False)
+            stadt_gdf['addr:housenumber'] = stadt_gdf['hausnummer'] + \
+                stadt_gdf['zusatz'].fillna('').astype(str)
+            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(
+                r'Str.', 'Straße', case=False)
+            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(
+                r'Pl.', 'Platz', case=False)
 
-            # In städten wie Köln und Duisburg ist ein Straßenname nicht eindeutig. 
+            # In städten wie Köln und Duisburg ist ein Straßenname nicht eindeutig.
             # Straßennamen können in diesen Städten über die Stadt verteilt mehrfach vorkommen und nur.
             stadt_gdf['strassenschluessel'] = ''.join([
                 stadt_gdf['landschl'],
@@ -382,7 +402,8 @@ class streets_of_nrw:
             stadt_clear = "".join(ch for ch in stadt if ch.isalnum())
 
             # Speichere als GeoJSON
-            stadt_gdf.to_file(f'data/Hausnummern/{stadt_clear}_daten.geojson', driver='GeoJSON')
+            stadt_gdf.to_file(
+                f'data/Hausnummern/{stadt_clear}_daten.geojson', driver='GeoJSON')
 
     def split_housenumbers(self, row):
         housenumbers = []
@@ -409,7 +430,7 @@ class streets_of_nrw:
             rows.append(new_row)
 
         return rows
-    
+
     def check_with_overpass(self, stadt):
         api = overpass.API()
         query = f'area["name"="{stadt}"]->.a; (node(area.a)["addr:housenumber"]; way(area.a)["addr:housenumber"]; relation(area.a)["addr:housenumber"];);'
@@ -417,9 +438,12 @@ class streets_of_nrw:
         print("load overpass data")
         overpass_result = api.get(query, verbosity='geom')
         print("convert overpass data")
-        overpass_gdf = gpd.read_file(geojson.dumps(overpass_result), driver='GeoJSON')
-        overpass_gdf = overpass_gdf.rename(columns={'geometry': 'geometry_overpass'})
-        overpass_gdf['geometry_overpass'] = overpass_gdf['geometry_overpass'].to_crs(epsg=4326).centroid
+        overpass_gdf = gpd.read_file(
+            geojson.dumps(overpass_result), driver='GeoJSON')
+        overpass_gdf = overpass_gdf.rename(
+            columns={'geometry': 'geometry_overpass'})
+        overpass_gdf['geometry_overpass'] = overpass_gdf['geometry_overpass'].to_crs(
+            epsg=4326).centroid
         # Wende die Funktion auf jede Zeile an und erstelle eine Liste von DataFrames
         print("split multi housenumbers")
         # Kombiniere die DataFrames in einer Liste zu einem einzigen DataFrame
@@ -427,16 +451,20 @@ class streets_of_nrw:
         # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf' mit Komma-separierten Werten
         comma_mask = overpass_gdf['addr:housenumber'].str.contains(',')
         split_overpass_gdf = overpass_gdf[comma_mask].copy()
-        split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(',')
+        split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(
+            ',')
         split_overpass_gdf = split_overpass_gdf.explode('addr:housenumber')
-        overpass_gdf = pd.concat([overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
+        overpass_gdf = pd.concat(
+            [overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
 
         # Erstelle eine separate Zeile für jede Hausnummer im "von-bis"-Format
         range_mask = overpass_gdf['addr:housenumber'].str.contains('-')
         range_overpass_gdf = overpass_gdf[range_mask].copy()
-        range_overpass_gdf['addr:housenumber'] = range_overpass_gdf['addr:housenumber'].apply(lambda x: list(range(int(x.split('-')[0]), int(x.split('-')[1])+1)))
+        range_overpass_gdf['addr:housenumber'] = range_overpass_gdf['addr:housenumber'].apply(
+            lambda x: list(range(int(x.split('-')[0]), int(x.split('-')[1])+1)))
         range_overpass_gdf = range_overpass_gdf.explode('addr:housenumber')
-        overpass_gdf = pd.concat([overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)
+        overpass_gdf = pd.concat(
+            [overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)
 
         # Lade das vorhandene GeoJSON
         print("load alkis data")
@@ -444,17 +472,23 @@ class streets_of_nrw:
         alkis_gdf = alkis_gdf.rename(columns={'geometry': 'geometry_alkis'})
 
         # Merge die beiden GeoDataFrames
-        merged_gdf = pd.merge(alkis_gdf, overpass_gdf, on=['addr:street', 'addr:housenumber'], how='outer', indicator=True)
+        merged_gdf = pd.merge(alkis_gdf, overpass_gdf, on=[
+                              'addr:street', 'addr:housenumber'], how='outer', indicator=True)
 
         # Extrahiere Straßennamen und Hausnummern, sortiere nach addr:street
-        missing_data = merged_gdf[merged_gdf['_merge'] == 'left_only'][['addr:street', 'addr:housenumber', 'geometry_alkis', '_merge']]
+        missing_data = merged_gdf[merged_gdf['_merge'] == 'left_only'][[
+            'addr:street', 'addr:housenumber', 'geometry_alkis', '_merge']]
 
-        missing_data_gdf = pd.merge(missing_data, overpass_gdf[['addr:street', 'addr:housenumber']], on=['addr:street', 'addr:housenumber'], how='left') 
-        missing_data_gdf = missing_data_gdf.rename(columns={'geometry_alkis': 'geometry'})
+        missing_data_gdf = pd.merge(missing_data, overpass_gdf[['addr:street', 'addr:housenumber']], on=[
+                                    'addr:street', 'addr:housenumber'], how='left')
+        missing_data_gdf = missing_data_gdf.rename(
+            columns={'geometry_alkis': 'geometry'})
 
         missing_data_gdf['source'] = ''
-        missing_data_gdf.loc[merged_gdf['_merge'] == 'left_only', 'source'] = 'alkis'
-        missing_data_gdf.loc[merged_gdf['_merge'] == 'right_only', 'source'] = 'overpass'
+        missing_data_gdf.loc[merged_gdf['_merge']
+                             == 'left_only', 'source'] = 'alkis'
+        missing_data_gdf.loc[merged_gdf['_merge']
+                             == 'right_only', 'source'] = 'overpass'
 
         print(f'Merged: {merged_gdf.columns}')
         print(f'Missing Merged: {missing_data_gdf.columns}')
@@ -463,30 +497,40 @@ class streets_of_nrw:
         print(f"Es wurden {missing_clount} Hausnummern gefunden")
         print("Columns in missing_data_gdf:", missing_data_gdf.columns)
 
-
         # Zeige die ersten 20 Einträge für 'overpass_gdf' an
         print("Overpass Data (Sorted):")
-        overpass_gdf_sorted = overpass_gdf.sort_values(by='addr:street').head(20)
-        print(overpass_gdf_sorted[['addr:street', 'addr:housenumber', 'geometry_overpass']])
+        overpass_gdf_sorted = overpass_gdf.sort_values(
+            by='addr:street').head(20)
+        print(overpass_gdf_sorted[['addr:street',
+              'addr:housenumber', 'geometry_overpass']])
 
         # Zeige die ersten 20 Einträge für 'alkis_gdf' an
         print("\nALKIS Data (Sorted):")
         alkis_gdf_sorted = alkis_gdf.sort_values(by='addr:street').head(20)
-        print(alkis_gdf_sorted[['addr:street', 'addr:housenumber', 'geometry_alkis', 'strassenschluessel']])
+        print(alkis_gdf_sorted[[
+              'addr:street', 'addr:housenumber', 'geometry_alkis', 'strassenschluessel']])
 
         print("\nMissed Data (Sorted):")
-        missing_gdf_sorted = missing_data_gdf.sort_values(by='addr:street').head(20)
-        print(missing_gdf_sorted[['addr:street', 'addr:housenumber', 'geometry', 'source']])
+        missing_gdf_sorted = missing_data_gdf.sort_values(
+            by='addr:street').head(20)
+        print(missing_gdf_sorted[['addr:street',
+              'addr:housenumber', 'geometry', 'source']])
 
-        missing_data_gdf.to_file(f'data/Hausnummern_diff/{stadt}.geojson', driver='GeoJSON', na='drop')
+        missing_data_gdf.to_file(
+            f'data/Hausnummern_diff/{stadt}.geojson', driver='GeoJSON', na='drop')
 
-        overpass_gdf = overpass_gdf.rename(columns={'geometry_overpass': 'geometry'})
-        overpass_gdf_filtered = overpass_gdf[['addr:street', 'addr:housenumber', 'geometry' ]].copy()
-        overpass_gdf_filtered.to_file(f'data/Hausnummern_diff/{stadt}_overpass.geojson', driver='GeoJSON', na='drop')
+        overpass_gdf = overpass_gdf.rename(
+            columns={'geometry_overpass': 'geometry'})
+        overpass_gdf_filtered = overpass_gdf[[
+            'addr:street', 'addr:housenumber', 'geometry']].copy()
+        overpass_gdf_filtered.to_file(
+            f'data/Hausnummern_diff/{stadt}_overpass.geojson', driver='GeoJSON', na='drop')
 
         alkis_gdf = alkis_gdf.rename(columns={'geometry_alkis': 'geometry'})
-        alkis_gdf_filtered = alkis_gdf[['addr:street', 'addr:housenumber', 'geometry' ]].copy()
-        alkis_gdf_filtered.to_file(f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
+        alkis_gdf_filtered = alkis_gdf[[
+            'addr:street', 'addr:housenumber', 'geometry']].copy()
+        alkis_gdf_filtered.to_file(
+            f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
 
     def get_building_json(self):
         pass
@@ -498,7 +542,8 @@ if __name__ == '__main__':
     # prepair data
 
     # Download from alkis nrw
-    keys = ['gemeinden', 'strassen']  # add 'gebaeude_bauwerk' if it is possible to download city based
+    # add 'gebaeude_bauwerk' if it is possible to download city based
+    keys = ['gemeinden', 'strassen']
     for key in keys:
         print(f'start import {key}')
         file_path = f'download/alkis/{key}.xml'
