@@ -13,9 +13,13 @@ import geopy.distance
 import shapely.geometry as geom
 import geojson
 from owslib.wfs import WebFeatureService
+from owslib.ogcapi.features import Features
+import os
+
 from requests import Request
 from urllib.parse import unquote
 
+pd.set_option('display.max_columns', None)
 
 class streets_of_nrw:
     def __init__(self):
@@ -64,14 +68,12 @@ class streets_of_nrw:
         # https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert?service=WFS&version=2.0.0&request=getFeature&TYPENAMES=adv:AX_GeoreferenzierteGebaeudeadresse
 
         typenames = {
-            'gemeinde': 'adv:AX_Gemeinde',
+            'gemeinden': 'adv:AX_Gemeinde',
             'gebaeude': 'adv:AX_GeoreferenzierteGebaeudeadresse',
             'strassen': 'adv:AX_LagebezeichnungKatalogeintrag',
         }
-
-        
+  
         wfs_url = 'https://www.wfs.nrw.de/geobasis/wfs_nw_alkis_aaa-modell-basiert'
-
 
         # Specify the parameters for fetching the data
         # Count: specificies amount of rows to return (e.g. 10000 or 100)
@@ -81,24 +83,40 @@ class streets_of_nrw:
             'version': "2.0.0",
             'request': 'GetFeature',
             'TYPENAMES': typenames[type],
-            'count': 100,
             'startIndex': 0,
+            'count': 10000,
         }
-        if type == 'strassen':
-            if gemeinde:
-                pass
-                #params['FILER'] = '<Filter><PropertyIsEqualTo><PropertyName>ortsnamePost</PropertyName><Literal>Ratingen</Literal></PropertyIsEqualTo></Filter>'
-                #params['FILTER'] = '<Filter><PropertyIsEqualTo><ValueReference>schluesselGesamt</ValueReference><Literal>591100004845</Literal></PropertyIsEqualTo></Filter>'
-                #params['FILTER'] = f'<Filter><PropertyIsEqualTo><PropertyName>bezeichnung</PropertyName><Literal>{gemeinde}</Literal></PropertyIsEqualTo></Filter>'
-        
-        # Parse the URL with parameters
-        wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
-        print(wfs_request_url)
+        total_count = 4000 
+        start_index = 0
 
-        # Read data from URL
-        data = gpd.read_file(unquote(wfs_request_url))
-        print(data)
-        return data
+        gdf_total = gpd.GeoDataFrame()
+        while True:
+            params['startIndex'] = start_index
+            start_index += params['count']
+            print(start_index)
+            wfs_request_url = Request('GET', wfs_url, params=params).prepare().url
+            print(wfs_request_url)
+            gdf_part = gpd.read_file(unquote(wfs_request_url))
+            gdf_total = gpd.GeoDataFrame(pd.concat([gdf_total, gdf_part], ignore_index=True), crs=gdf_part.crs)
+            gdf_count = len(gdf_part)
+            print(f'collect {gdf_count} lines')
+            print(gdf_total)
+            #gdf_count = 1
+            if gdf_count < params['count']:
+                print("last round")
+                break
+
+        return gdf_total
+    
+    def get_nrw_api(self, collection_name):
+        url = 'https://ogc-api.nrw.de/lika/v1/'
+        w = Features(url)
+        collections = w.collections()
+        #for collect in collections:
+        #    print(collect)
+        collection = w.collection(collection_name)
+        id = collection['id']
+      
 
     def gemeinde(self):
         print('Start load gemeinde')
@@ -476,8 +494,31 @@ class streets_of_nrw:
 
 if __name__ == '__main__':
     streets = streets_of_nrw()
-    streets.get_wfs_nrw("gemeinde")
-    streets.get_wfs_nrw('strassen', gemeinde='Ratingen')
+
+    # prepair data
+
+    # Download from alkis nrw
+    keys = ['gemeinden', 'strassen']  # add 'gebaeude_bauwerk' if it is possible to download city based
+    for key in keys:
+        print(f'start import {key}')
+        file_path = f'download/alkis/{key}.xml'
+        if not os.path.exists(file_path):
+            gdf_streets = streets.get_wfs_nrw(key, gemeinde='Ratingen')
+            filter_list = {
+                'gemeinden': ['identifier', 'beginnt', 'schluesselGesamt',
+                              'bezeichnung', 'land', 'regierungsbezirk',
+                              'kreis', 'gemeinde', 'geometry'],
+                'strassen': ['identifier', 'beginnt', 'schluesselGesamt',
+                             'bezeichnung', 'land', 'regierungsbezirk',
+                             'kreis', 'gemeinde', 'lage', 'geometry'],
+            }
+            filter = filter_list.get(key, [])
+            if filter:
+                gdf_streets = gpd.GeoDataFrame(gdf_streets[filter])
+            gdf_streets.to_file(file_path)
+        else:
+            print(f'use existing file: {file_path}')
+
     # streets.gemeinde()
     # streets.strasse()
     # streets.gebaeude()
