@@ -326,8 +326,6 @@ class streets_of_nrw:
         alkis_gdf_filtered.to_file(
             f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
 
-    def get_building_json(self):
-        pass
 
 
 if __name__ == '__main__':
