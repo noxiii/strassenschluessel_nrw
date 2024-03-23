@@ -388,7 +388,7 @@ if __name__ == '__main__':
             
             # save as csv 
             gemeinde_clean = streets.cleanup_text(gemeinde)
-            csv_file = f'./strassenschluessel/{gemeinde_clean}.csv'
+            csv_file = f'./export/strassenschluessel_csv/{gemeinde_clean}.csv'
             print(f'save file {csv_file}')
             print(filtered_strasse)
             filtered_strasse.to_csv(csv_file, sep=';', index=False)
