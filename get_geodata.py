@@ -335,11 +335,13 @@ if __name__ == '__main__':
 
     # Download from alkis nrw
     # add 'gebaeude_bauwerk' if it is possible to download city based
+
     keys = ['gemeinden', 'strassen']
+    file_paths = {}
     for key in keys:
         print(f'start import {key}')
-        file_path = f'download/alkis/{key}.xml'
-        if not os.path.exists(file_path):
+        file_paths[key] = f'download/alkis/{key}.xml'
+        if not os.path.exists(file_paths[key]):
             gdf_streets = streets.get_wfs_nrw(key, gemeinde='Ratingen')
             filter_list = {
                 'gemeinden': ['identifier', 'beginnt', 'schluesselGesamt',
@@ -352,14 +354,8 @@ if __name__ == '__main__':
             filter = filter_list.get(key, [])
             if filter:
                 gdf_streets = gpd.GeoDataFrame(gdf_streets[filter])
-            gdf_streets.to_file(file_path)
+            gdf_streets.to_file(file_paths[key])
         else:
-            print(f'use existing file: {file_path}')
-
-    # streets.gemeinde()
-    # streets.strasse()
-    # streets.gebaeude()
-    # streets.speicher_strassen()
-
+            print(f'use existing file: {file_paths[key]}')
     # streets.gebref()
     # streets.check_with_overpass("Ratingen")
