@@ -361,8 +361,7 @@ if __name__ == '__main__':
     gpd_gemeinden = gpd.read_file(file_paths['gemeinden'])
     gpd_strassen = gpd.read_file(file_paths['strassen'])
 
-    #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
-    gemeinde_list = ['Ratingen', 'Düsseldorf']
+    gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
     for gemeinde in gemeinde_list:
         print(f'progress {gemeinde}')
         gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
