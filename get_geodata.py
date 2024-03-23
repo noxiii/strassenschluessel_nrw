@@ -371,7 +371,7 @@ if __name__ == '__main__':
                 & (gpd_strassen.regierungsbezirk == gmd_row['regierungsbezirk'])
                 & (gpd_strassen.kreis == gmd_row['kreis'])
                 & (gpd_strassen.gemeinde == gmd_row['gemeinde'])
-            ]
+            ].copy()
 
             def create_schluessel(row):
                 land = str(row['land']).zfill(2)
