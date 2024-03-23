@@ -357,5 +357,47 @@ if __name__ == '__main__':
             gdf_streets.to_file(file_paths[key])
         else:
             print(f'use existing file: {file_paths[key]}')
+
+    gpd_gemeinden = gpd.read_file(file_paths['gemeinden'])
+    gpd_strassen = gpd.read_file(file_paths['strassen'])
+
+    #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
+    gemeinde_list = ['Ratingen', 'Düsseldorf']
+    for gemeinde in gemeinde_list:
+        print(f'progress {gemeinde}')
+        gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
+        for index, gmd_row in gpd_gemeinde.iterrows():
+            gpd_strasse = gpd_strassen[
+                (gpd_strassen.land == gmd_row['land'])
+                & (gpd_strassen.regierungsbezirk == gmd_row['regierungsbezirk'])
+                & (gpd_strassen.kreis == gmd_row['kreis'])
+                & (gpd_strassen.gemeinde == gmd_row['gemeinde'])
+            ]
+
+
+            print(gpd_strassen.columns)
+
+            def create_schluessel(row):
+                land = str(row['land']).zfill(2)
+                rgbz = str(int(row['regierungsbezirk'])).zfill(1)
+                kreis = str(row['kreis']).zfill(2)
+                gmd_verband = "0000"
+                gemeinde = str(row['gemeinde']).zfill(3)
+                lage = str(row['lage']).zfill(5)
+                return f"{land}{rgbz}{kreis}{gmd_verband}{gemeinde}{lage}"
+
+            # Neues Feld "schlüssel" erstellen
+            gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
+            
+            # save as csv 
+            gemeinde_clean = streets.cleanup_text(gemeinde)
+            csv_file = f'strassenschluessel/{gemeinde_clean}.csv'
+            print(f'save file {csv_file}')
+            filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung']].sort_values(by='strassenschluessel')
+            print(filtered_strasse)
+            filtered_strasse.to_csv(csv_file, sep=';', index=False)
+
+
+            
     # streets.gebref()
     # streets.check_with_overpass("Ratingen")
