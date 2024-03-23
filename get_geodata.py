@@ -384,12 +384,12 @@ if __name__ == '__main__':
 
             # Neues Feld "schlüssel" erstellen
             gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
+            filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung']].sort_values(by='strassenschluessel')
             
             # save as csv 
             gemeinde_clean = streets.cleanup_text(gemeinde)
             csv_file = f'strassenschluessel/{gemeinde_clean}.csv'
             print(f'save file {csv_file}')
-            filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung']].sort_values(by='strassenschluessel')
             print(filtered_strasse)
             filtered_strasse.to_csv(csv_file, sep=';', index=False)
 
