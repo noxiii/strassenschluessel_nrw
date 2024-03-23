@@ -358,7 +358,7 @@ if __name__ == '__main__':
         else:
             print(f'use existing file: {file_paths[key]}')
 
-    gpd_gemeinden = gpd.read_file(file_paths['gemeinden'])
+    gpd_gemeinden = gpd.read_file(file_paths['gemeinden']).query("land == 5")
     gpd_strassen = gpd.read_file(file_paths['strassen'])
 
     gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
