@@ -392,6 +392,11 @@ if __name__ == '__main__':
             print(filtered_strasse)
             filtered_strasse.to_csv(csv_file, sep=';', index=False)
 
+            # export as json#
+            json_file = f'./export/strassenschluessel_json/{gemeinde_clean}.json'
+            print(f'save file {json_file}')
+            gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
+
 
             
     # streets.gebref()
