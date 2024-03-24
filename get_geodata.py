@@ -356,6 +356,8 @@ if __name__ == '__main__':
         else:
             print(f'use existing file: {file_paths[key]}')
 
+    # Better load Data City based this take alot of time and create high memory usage
+    print('Load data')
     gpd_gemeinden = gpd.read_file(file_paths['gemeinden']).query("land == 5")
     gpd_strassen = gpd.read_file(file_paths['strassen'])
     gpd_gebaeude = streets.gebref()
