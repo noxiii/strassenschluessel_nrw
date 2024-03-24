@@ -87,7 +87,6 @@ class streets_of_nrw:
             'startIndex': 0,
             'count': 10000,
         }
-        total_count = 4000
         start_index = 0
 
         gdf_total = gpd.GeoDataFrame()
