@@ -222,7 +222,7 @@ class streets_of_nrw:
 
         return rows
 
-    def check_with_overpass(self, stadt):
+    def get_overpass_housenumbers(self, stadt):
         api = overpass.API()
         query = f'area["name"="{stadt}"]->.a; (node(area.a)["addr:housenumber"]; way(area.a)["addr:housenumber"]; relation(area.a)["addr:housenumber"];);'
 
@@ -231,24 +231,18 @@ class streets_of_nrw:
         print("convert overpass data")
         overpass_gdf = gpd.read_file(
             geojson.dumps(overpass_result), driver='GeoJSON')
-        overpass_gdf = overpass_gdf.rename(
-            columns={'geometry': 'geometry_overpass'})
-        overpass_gdf['geometry_overpass'] = overpass_gdf['geometry_overpass'].to_crs(
-            epsg=4326).centroid
-        # Wende die Funktion auf jede Zeile an und erstelle eine Liste von DataFrames
-        print("split multi housenumbers")
-        # Kombiniere die DataFrames in einer Liste zu einem einzigen DataFrame
-
-        # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf' mit Komma-separierten Werten
+        
+        print(overpass_gdf)
+        # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf'
+        # separate Komma-separierten
+        print("split multi housenumbers commaseparate")
         comma_mask = overpass_gdf['addr:housenumber'].str.contains(',')
         split_overpass_gdf = overpass_gdf[comma_mask].copy()
-        split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(
-            ',')
+        split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(',')
         split_overpass_gdf = split_overpass_gdf.explode('addr:housenumber')
-        overpass_gdf = pd.concat(
-            [overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
+        overpass_gdf = pd.concat([overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
 
-        # Erstelle eine separate Zeile für jede Hausnummer im "von-bis"-Format
+        print('split multi housenumbers -')
         range_mask = overpass_gdf['addr:housenumber'].str.contains('-')
         range_overpass_gdf = overpass_gdf[range_mask].copy()
         range_overpass_gdf['addr:housenumber'] = range_overpass_gdf['addr:housenumber'].apply(
@@ -256,11 +250,10 @@ class streets_of_nrw:
         range_overpass_gdf = range_overpass_gdf.explode('addr:housenumber')
         overpass_gdf = pd.concat(
             [overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)
+        print('done')
+        return overpass_gdf
 
-        # Lade das vorhandene GeoJSON
-        print("load alkis data")
-        alkis_gdf = gpd.read_file(f'data/Hausnummern/{stadt}_daten.geojson')
-        alkis_gdf = alkis_gdf.rename(columns={'geometry': 'geometry_alkis'})
+    def check_with_overpass(self, alkis_gdf, overpass_gdf):
 
         # Merge die beiden GeoDataFrames
         merged_gdf = pd.merge(alkis_gdf, overpass_gdf, on=[
