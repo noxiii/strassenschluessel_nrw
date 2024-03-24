@@ -124,6 +124,7 @@ class streets_of_nrw:
  
     def gebref(self):
         dtype_mapping = {13: str, 15: str}
+        print('Load gebref file')
         df = pd.read_csv('gebref/gebref.txt', delimiter=';',
                          header=None, dtype=dtype_mapping)
 
@@ -131,17 +132,17 @@ class streets_of_nrw:
             'nba',  #
             'oid',  # ?
             'qua',  # Qualität
-            'landschl',  # Landesschlüssel
-            'land',  # Land
-            'regbezschl',  # Regierungsbezirksschlüssel
-            'regbez',  # Regierungsbezirk
-            'kreisschl',  # Kreisschlüssel
-            'kreis',  # Kreis
-            'gmdschl',  # Gemeindeschlüssel
+            'land',  # Landesschlüssel
+            'land_name',  # Land
+            'regierungsbezirk',  # Regierungsbezirksschlüssel
+            'regbez_name',  # Regierungsbezirk
+            'kreis',  # Kreisschlüssel
+            'kreis_name',  # Kreis
+            'gemeinde',  # Gemeindeschlüssel
             'addr:city',  # Gemeinde (entsprechend OSM addr:city)
             'ottschl',  # Ortschlüssel
             'ott',  # Ort
-            'strschl',  # Straßenschlüssel
+            'lage',  # Straßenschlüssel
             'addr:street',  # Straße (entsprechend OSM addr:street)
             'hausnummer',  # Hausnummer (entsprechend OSM addr:housenumber)
             'zusatz',  # Adresszusatz (entsprechend OSM addr:unit)
@@ -152,9 +153,11 @@ class streets_of_nrw:
         ]
 
         # Weise die manuell festgelegten Spaltennamen zu
+        print('name column')
         df.columns = column_names
 
         # UTM-Konvertierung in Längen- und Breitengrad direkt im DataFrame
+        print('transform coordinate system')
         utm_proj = Proj(init='epsg:32632')  # Beispiel für UTM-Zone 32
         latlon_proj = Proj(init='epsg:4326')  # WGS84 Längen- und Breitengrad
 
@@ -171,34 +174,29 @@ class streets_of_nrw:
         gdf = gpd.GeoDataFrame(df, geometry=geometry, crs='EPSG:4326')
 
         # Gruppiere nach Stadt und erstelle separate GeoJSON-Dateien
-        for stadt, daten in gdf.groupby('addr:city'):
-            print('start: ' + stadt)
-            stadt_gdf = gpd.GeoDataFrame(daten)
-            #  stadt_gdf["properties"]["source"] = "opengeodata.nrw.de (c) Deutschland Lizens zero"
-            stadt_gdf['addr:housenumber'] = stadt_gdf['hausnummer'] + \
-                stadt_gdf['zusatz'].fillna('').astype(str)
-            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(
-                r'Str.', 'Straße', case=False)
-            stadt_gdf['addr:street'] = stadt_gdf['addr:street'].str.replace(
-                r'Pl.', 'Platz', case=False)
 
-            # In städten wie Köln und Duisburg ist ein Straßenname nicht eindeutig.
-            # Straßennamen können in diesen Städten über die Stadt verteilt mehrfach vorkommen und nur.
-            stadt_gdf['strassenschluessel'] = ''.join([
-                stadt_gdf['landschl'],
-                stadt_gdf['regbezschl'],
-                stadt_gdf['kreisschl'],
-                '0000',
-                stadt_gdf['gmdschl'],
-                stadt_gdf['strschl'],
-            ])
+        print('fix streetnames')
 
-            stadt_clear = "".join(ch for ch in stadt if ch.isalnum())
+        gdf['addr:housenumber'] = gdf['hausnummer'] + \
+            gdf['zusatz'].fillna('').astype(str)
+        gdf['addr:street'] = gdf['addr:street'].str.replace(
+            r'Str.', 'Straße', case=False)
+        gdf['addr:street'] = gdf['addr:street'].str.replace(
+            r'Pl.', 'Platz', case=False)
 
-            # Speichere als GeoJSON
-            stadt_gdf.to_file(
-                f'data/Hausnummern/{stadt_clear}_daten.geojson', driver='GeoJSON')
+        def create_schluessel(row):
+            land = str(row['land']).zfill(2)
+            rgbz = str(int(row['regierungsbezirk'])).zfill(1)
+            kreis = str(row['kreis']).zfill(2)
+            gmd_verband = "0000"
+            gemeinde = str(row['gemeinde']).zfill(3)
+            lage = str(row['lage']).zfill(5)
+            return f"{land}{rgbz}{kreis}{gmd_verband}{gemeinde}{lage}"
+        # Neues Feld "schlüssel" erstellen
+        gdf['strassenschluessel'] = gdf.apply(create_schluessel, axis=1)
 
+        return gdf
+            
     def split_housenumbers(self, row):
         housenumbers = []
         # Wenn ',' vorhanden ist, teile nach ',' auf
@@ -360,6 +358,7 @@ if __name__ == '__main__':
 
     gpd_gemeinden = gpd.read_file(file_paths['gemeinden']).query("land == 5")
     gpd_strassen = gpd.read_file(file_paths['strassen'])
+    gpd_gebaeude = streets.gebref()
 
     gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
     for gemeinde in gemeinde_list:
