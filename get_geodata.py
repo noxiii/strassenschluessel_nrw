@@ -324,7 +324,6 @@ class streets_of_nrw:
             f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
 
 
-
 if __name__ == '__main__':
     streets = streets_of_nrw()
 
