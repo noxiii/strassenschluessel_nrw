@@ -371,7 +371,22 @@ if __name__ == '__main__':
             print(f'save file {json_file}')
             gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
 
+            ####################
+            # Housenumbers
+            gpd_overpass = gpd.GeoDataFrame(streets.get_overpass_housenumbers(gemeinde))
+            #print(gpd_overpass[['addr:street', 'addr:housenumber', 'geometry']])
 
+            alkis_gebaeude_gemeinde_gdf = gpd_gebaeude[
+                (gpd_gebaeude.land == gmd_row['land'])
+                & (gpd_gebaeude.regierungsbezirk == gmd_row['regierungsbezirk'])
+                & (gpd_gebaeude.kreis == gmd_row['kreis'])
+                & (gpd_gebaeude.gemeinde == gmd_row['gemeinde'])
+            ].copy()
+            missing_buildings = streets.get_diff_hausnumbers(alkis_gebaeude_gemeinde_gdf, gpd_overpass)
+            hausnummer_json_file = f'./export/hausnummern_json/{gemeinde_clean}.json'
+            print(f'save file {json_file}')
+            print(missing_buildings)
+            missing_buildings.sort_values(by='addr:street').to_file(hausnummer_json_file)
+            print('done')
             
-    # streets.gebref()
-    # streets.check_with_overpass("Ratingen")
+
