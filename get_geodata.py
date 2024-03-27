@@ -255,72 +255,10 @@ class streets_of_nrw:
             lambda x: list(range(int(x.split('-')[0]), int(x.split('-')[1])+1)))
         range_overpass_gdf = range_overpass_gdf.explode('addr:housenumber')
         overpass_gdf = pd.concat(
-            [overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)
+            [overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)    
         print('done')
-        return overpass_gdf
+        return overpass_gdf[['addr:street', 'addr:housenumber', 'geometry']]
 
-    def check_with_overpass(self, alkis_gdf, overpass_gdf):
-
-        # Merge die beiden GeoDataFrames
-        merged_gdf = pd.merge(alkis_gdf, overpass_gdf, on=[
-                              'addr:street', 'addr:housenumber'], how='outer', indicator=True)
-
-        # Extrahiere Straßennamen und Hausnummern, sortiere nach addr:street
-        missing_data = merged_gdf[merged_gdf['_merge'] == 'left_only'][[
-            'addr:street', 'addr:housenumber', 'geometry_alkis', '_merge']]
-
-        missing_data_gdf = pd.merge(missing_data, overpass_gdf[['addr:street', 'addr:housenumber']], on=[
-                                    'addr:street', 'addr:housenumber'], how='left')
-        missing_data_gdf = missing_data_gdf.rename(
-            columns={'geometry_alkis': 'geometry'})
-
-        missing_data_gdf['source'] = ''
-        missing_data_gdf.loc[merged_gdf['_merge']
-                             == 'left_only', 'source'] = 'alkis'
-        missing_data_gdf.loc[merged_gdf['_merge']
-                             == 'right_only', 'source'] = 'overpass'
-
-        print(f'Merged: {merged_gdf.columns}')
-        print(f'Missing Merged: {missing_data_gdf.columns}')
-
-        missing_clount = len(missing_data_gdf)
-        print(f"Es wurden {missing_clount} Hausnummern gefunden")
-        print("Columns in missing_data_gdf:", missing_data_gdf.columns)
-
-        # Zeige die ersten 20 Einträge für 'overpass_gdf' an
-        print("Overpass Data (Sorted):")
-        overpass_gdf_sorted = overpass_gdf.sort_values(
-            by='addr:street').head(20)
-        print(overpass_gdf_sorted[['addr:street',
-              'addr:housenumber', 'geometry_overpass']])
-
-        # Zeige die ersten 20 Einträge für 'alkis_gdf' an
-        print("\nALKIS Data (Sorted):")
-        alkis_gdf_sorted = alkis_gdf.sort_values(by='addr:street').head(20)
-        print(alkis_gdf_sorted[[
-              'addr:street', 'addr:housenumber', 'geometry_alkis', 'strassenschluessel']])
-
-        print("\nMissed Data (Sorted):")
-        missing_gdf_sorted = missing_data_gdf.sort_values(
-            by='addr:street').head(20)
-        print(missing_gdf_sorted[['addr:street',
-              'addr:housenumber', 'geometry', 'source']])
-
-        missing_data_gdf.to_file(
-            f'data/Hausnummern_diff/{stadt}.geojson', driver='GeoJSON', na='drop')
-
-        overpass_gdf = overpass_gdf.rename(
-            columns={'geometry_overpass': 'geometry'})
-        overpass_gdf_filtered = overpass_gdf[[
-            'addr:street', 'addr:housenumber', 'geometry']].copy()
-        overpass_gdf_filtered.to_file(
-            f'data/Hausnummern_diff/{stadt}_overpass.geojson', driver='GeoJSON', na='drop')
-
-        alkis_gdf = alkis_gdf.rename(columns={'geometry_alkis': 'geometry'})
-        alkis_gdf_filtered = alkis_gdf[[
-            'addr:street', 'addr:housenumber', 'geometry']].copy()
-        alkis_gdf_filtered.to_file(
-            f'data/Hausnummern_diff/{stadt}_alkis.geojson', driver='GeoJSON', na='drop')
 
 
 if __name__ == '__main__':
