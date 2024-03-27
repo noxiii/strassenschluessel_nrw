@@ -237,11 +237,8 @@ class streets_of_nrw:
 
         print("load overpass data")
         overpass_result = api.get(query, verbosity='geom')
-        print("convert overpass data")
-        overpass_gdf = gpd.read_file(
-            geojson.dumps(overpass_result), driver='GeoJSON')
-        
-        print(overpass_gdf)
+        print("overpass to geopandas")
+        overpass_gdf = gpd.GeoDataFrame.from_features(overpass_result['features'])
         # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf'
         # separate Komma-separierten
         print("split multi housenumbers commaseparate")
