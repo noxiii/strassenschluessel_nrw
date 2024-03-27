@@ -15,6 +15,8 @@ import geojson
 from owslib.wfs import WebFeatureService
 from owslib.ogcapi.features import Features
 import os
+from shapely.geometry import shape, Point
+from shapely.ops import nearest_points
 
 from requests import Request
 from urllib.parse import unquote
