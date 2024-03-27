@@ -226,7 +226,14 @@ class streets_of_nrw:
 
     def get_overpass_housenumbers(self, stadt):
         api = overpass.API()
-        query = f'area["name"="{stadt}"]->.a; (node(area.a)["addr:housenumber"]; way(area.a)["addr:housenumber"]; relation(area.a)["addr:housenumber"];);'
+        query = f"""
+        area["name"="{stadt}"]->.a;
+        (
+            node(area.a)["addr:housenumber"];
+            way(area.a)["addr:housenumber"];
+            relation(area.a)["addr:housenumber"];
+        );
+        """
 
         print("load overpass data")
         overpass_result = api.get(query, verbosity='geom')
