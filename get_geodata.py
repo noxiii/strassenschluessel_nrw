@@ -259,6 +259,43 @@ class streets_of_nrw:
         print('done')
         return overpass_gdf[['addr:street', 'addr:housenumber', 'geometry']]
 
+    def get_diff_hausnumbers(self, data1, data2):
+        # Überprüfen, ob die erforderlichen Spalten vorhanden sind
+        if 'addr:street' not in data1.columns or 'addr:housenumber' not in data1.columns:
+            raise ValueError("data1 fehlen erforderliche Spalten 'addr:street' oder 'addr:housenumber'")
+        if 'addr:street' not in data2.columns or 'addr:housenumber' not in data2.columns:
+            raise ValueError("data2 fehlen erforderliche Spalten 'addr:street' oder 'addr:housenumber'")
+
+        # Konvertieren Sie 'addr:housenumber' in Strings
+        data1['addr:housenumber'] = data1['addr:housenumber'].astype(str)
+        data2['addr:housenumber'] = data2['addr:housenumber'].astype(str)
+
+
+        # Kombinieren der Adressen aus beiden Datenrahmen
+        data1['address'] = data1['addr:street'] + data1['addr:housenumber']
+        data2['address'] = data2['addr:street'] + data2['addr:housenumber']
+
+        data1['comment'] = 'Address exist not in osm'
+        data2['comment'] = 'Address exist not in alkis'
+
+        # Extrahiere die Geometrien aus GeoJSON
+        data1['geometry'] = data1['geometry'].apply(lambda x: shape(x))
+        data2['geometry'] = data2['geometry'].apply(lambda x: shape(x))
+
+        max_distance = 20
+        # Finde die nächsten Punkte zwischen den beiden GeoDataFrames
+        nearest_points_data1_to_data2 = gpd.tools.sjoin_nearest(data1, data2, how='inner', max_distance=max_distance)
+        nearest_points_data2_to_data1 = gpd.tools.sjoin_nearest(data2, data1, how='inner', max_distance=max_distance)
+
+        # Filtern Sie die Adressen basierend auf den gefundenen nächsten Punkten
+        diff_data_data1_to_data2 = data1[~data1.index.isin(nearest_points_data1_to_data2.index_right)]
+        diff_data_data2_to_data1 = data2[~data2.index.isin(nearest_points_data2_to_data1.index_right)]
+
+        # Zusammenführen der beiden DataFrames
+        combined_diff_data = gpd.GeoDataFrame(pd.concat([diff_data_data1_to_data2, diff_data_data2_to_data1], ignore_index=True))
+
+        return combined_diff_data[['addr:street', 'addr:housenumber', 'comment', 'geometry']]
+
 
 
 if __name__ == '__main__':
