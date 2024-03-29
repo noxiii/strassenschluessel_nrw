@@ -266,35 +266,27 @@ class streets_of_nrw:
         if 'addr:street' not in data2.columns or 'addr:housenumber' not in data2.columns:
             raise ValueError("data2 fehlen erforderliche Spalten 'addr:street' oder 'addr:housenumber'")
 
-        # Konvertieren Sie 'addr:housenumber' in Strings
-        data1['addr:housenumber'] = data1['addr:housenumber'].astype(str)
-        data2['addr:housenumber'] = data2['addr:housenumber'].astype(str)
+        data1['geometry'] = data1.geometry.centroid
+        data2['geometry'] = data2.geometry.centroid
 
+        gdf1 = gpd.GeoDataFrame(data1)
+        gdf2 = gpd.GeoDataFrame(data2)
 
-        # Kombinieren der Adressen aus beiden Datenrahmen
-        data1['address'] = data1['addr:street'] + data1['addr:housenumber']
-        data2['address'] = data2['addr:street'] + data2['addr:housenumber']
+        # Merge der GeoDataFrames basierend auf 'addr:street' und 'addr:housenumber'
+        merged = pd.merge(gdf1, gdf2, on=['addr:street', 'addr:housenumber'], how='outer', suffixes=('_gdf1', '_gdf2'), indicator=True)
+        merged['geometry'] = merged['geometry_gdf1'].combine_first(merged['geometry_gdf2'])
 
-        data1['comment'] = 'Address exist not in osm'
-        data2['comment'] = 'Address exist not in alkis'
+        # Filtern nach Zeilen, die nur in einem der beiden DataFrames vorhanden sind
+        only_in_gdf1 = merged[merged['_merge'] == 'left_only'].drop(columns=['_merge'])
+        only_in_gdf2 = merged[merged['_merge'] == 'right_only'].drop(columns=['_merge'])
+        only_in_gdf1['comment'] = 'only in alkis'
+        only_in_gdf2['comment'] = 'only in osm'
 
-        # Extrahiere die Geometrien aus GeoJSON
-        data1['geometry'] = data1['geometry'].apply(lambda x: shape(x))
-        data2['geometry'] = data2['geometry'].apply(lambda x: shape(x))
+        # Ergebnis-GeoDataFrames
+        result = gpd.GeoDataFrame(pd.concat([only_in_gdf1, only_in_gdf2], ignore_index=True))
 
-        max_distance = 20
-        # Finde die nächsten Punkte zwischen den beiden GeoDataFrames
-        nearest_points_data1_to_data2 = gpd.tools.sjoin_nearest(data1, data2, how='inner', max_distance=max_distance)
-        nearest_points_data2_to_data1 = gpd.tools.sjoin_nearest(data2, data1, how='inner', max_distance=max_distance)
-
-        # Filtern Sie die Adressen basierend auf den gefundenen nächsten Punkten
-        diff_data_data1_to_data2 = data1[~data1.index.isin(nearest_points_data1_to_data2.index_right)]
-        diff_data_data2_to_data1 = data2[~data2.index.isin(nearest_points_data2_to_data1.index_right)]
-
-        # Zusammenführen der beiden DataFrames
-        combined_diff_data = gpd.GeoDataFrame(pd.concat([diff_data_data1_to_data2, diff_data_data2_to_data1], ignore_index=True))
-
-        return combined_diff_data[['addr:street', 'addr:housenumber', 'comment', 'geometry']]
+        print(result)
+        return result
 
 
 
