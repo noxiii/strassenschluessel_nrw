@@ -243,8 +243,7 @@ if __name__ == '__main__':
 
         filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
         filtered_strasse.drop_duplicates('strassenschluessel')
-        
-            
+  
         # save as csv 
         gemeinde_clean = streets.cleanup_text(gemeinde)
 
