@@ -217,7 +217,7 @@ if __name__ == '__main__':
         os.makedirs(export_strassenschluessel_json)
 
     #gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
-    for index, gmd_row in gemeinde_list.iterrows():
+    for index, gmd_row in gemeinde_list.sort_values(by='bezeichnung').iterrows():
         gemeinde = gmd_row['bezeichnung']
         print(f'progress {gemeinde}')
         gpd_strasse = gpd_strassen[
