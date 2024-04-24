@@ -90,17 +90,6 @@ class streets_of_nrw:
 
         return gdf_total
 
-    def get_nrw_api(self, collection_name):
-        url = 'https://ogc-api.nrw.de/lika/v1/'
-        w = Features(url)
-        collections = w.collections()
-        # for collect in collections:
-        #    print(collect)
-        collection = w.collection(collection_name)
-        id = collection['id']
-
-
- 
     def gebref(self):
         dtype_mapping = {13: str, 15: str}
         print('Load gebref file')
