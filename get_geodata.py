@@ -1,21 +1,14 @@
 import xml.etree.ElementTree as ET
 import re
-from pyproj import Transformer
+import os
 
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
 from pyproj import Proj, Transformer
-import overpass
-from owslib.ogcapi.features import Features
-import os
-from shapely.geometry import Point
 
 from requests import Request
 from urllib.parse import unquote
-
-#pd.set_option('display.max_columns', None)
-
 
 class streets_of_nrw:
     def __init__(self):
