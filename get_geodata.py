@@ -256,4 +256,5 @@ if __name__ == '__main__':
         # export as json
         json_file = f'{export_strassenschluessel_json}/{gemeinde_clean}.json'
         print(f'save file {json_file}')
+        filtered_strasse.sort_values(by='strassenschluessel').to_file(json_file)
             
