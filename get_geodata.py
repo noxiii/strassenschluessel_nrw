@@ -224,14 +224,17 @@ class streets_of_nrw:
 
         return rows
 
-    def get_overpass_housenumbers(self, stadt):
+    def get_overpass_housenumbers(self, gemeinde_schluessel):
         api = overpass.API()
         query = f"""
-        area["name"="{stadt}"]->.a;
+        area["boundary"="administrative"]
+	        ["de:amtlicher_gemeindeschluessel"="{gemeinde_schluessel}"]
+            ->.searchArea;
+        #area["name"="{stadt}"]->.a;
         (
-            node(area.a)["addr:housenumber"];
-            way(area.a)["addr:housenumber"];
-            relation(area.a)["addr:housenumber"];
+            nwr(area.a)
+                ["addr:housenumber"]
+                ["addr:street"];
         );
         """
 
