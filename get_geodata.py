@@ -1,22 +1,15 @@
 import xml.etree.ElementTree as ET
-import json
-import sqlite3
 import re
 from pyproj import Transformer
-from tqdm import tqdm
+
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point, LineString
+from shapely.geometry import Point
 from pyproj import Proj, Transformer
 import overpass
-import geopy.distance
-import shapely.geometry as geom
-import geojson
-from owslib.wfs import WebFeatureService
 from owslib.ogcapi.features import Features
 import os
-from shapely.geometry import shape, Point
-from shapely.ops import nearest_points
+from shapely.geometry import Point
 
 from requests import Request
 from urllib.parse import unquote
