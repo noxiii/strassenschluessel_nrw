@@ -1,20 +1,49 @@
 import xml.etree.ElementTree as ET
+import json
+import sqlite3
 import re
-import os
-
+from pyproj import Transformer
+from tqdm import tqdm
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 from pyproj import Proj, Transformer
+import overpass
+import geopy.distance
+import shapely.geometry as geom
+import geojson
+from owslib.wfs import WebFeatureService
+from owslib.ogcapi.features import Features
+import os
+from shapely.geometry import shape, Point
+from shapely.ops import nearest_points
 
 from requests import Request
 from urllib.parse import unquote
+
+#pd.set_option('display.max_columns', None)
+
 
 class streets_of_nrw:
     def __init__(self):
         self.gemeinden = []
         self.strassen = {}
         self.gebaeuden = []
+
+    def close(self):
+        self.con.close()
+
+    def speicher_strassen(self):
+        print("Speicher Straßen")
+        for gemeinde in self.gemeinden:
+
+            name = self.cleanup_text(gemeinde['name'])
+            gemeinde_schluessel = gemeinde['schluessel']
+            strassen = sorted(set(self.strassen[gemeinde_schluessel]))
+            print(f"Speicher {name} mit {len(strassen)} Straßen")
+            with open(f"strassenschluessel/{name}.csv", "w") as file:
+                for string in strassen:
+                    file.write(f"{string}\n")
 
     def cleanup_text(self, text):
         # Leerzeichen durch Unterstriche ersetzen
@@ -83,6 +112,17 @@ class streets_of_nrw:
 
         return gdf_total
 
+    def get_nrw_api(self, collection_name):
+        url = 'https://ogc-api.nrw.de/lika/v1/'
+        w = Features(url)
+        collections = w.collections()
+        # for collect in collections:
+        #    print(collect)
+        collection = w.collection(collection_name)
+        id = collection['id']
+
+
+ 
     def gebref(self):
         dtype_mapping = {13: str, 15: str}
         print('Load gebref file')
@@ -157,6 +197,100 @@ class streets_of_nrw:
         gdf['strassenschluessel'] = gdf.apply(create_schluessel, axis=1)
 
         return gdf
+            
+    def split_housenumbers(self, row):
+        housenumbers = []
+        # Wenn ',' vorhanden ist, teile nach ',' auf
+        if ',' in str(row['addr:housenumber']):
+            housenumbers.extend(str(row['addr:housenumber']).split(','))
+            print(f"split {row['addr:housenumber']} to {housenumbers}")
+        elif '-' in str(row['addr:housenumber']):
+            # Wenn '-' vorhanden ist, teile nach '-' auf
+
+            start, end = map(int, str(row['addr:housenumber']).split('-'))
+            housenumbers.extend(map(str, range(start, end + 1)))
+            print(f"split {row['addr:housenumber']} to {housenumbers}")
+
+        else:
+            # Andernfalls bleibt die Hausnummer unverändert
+            housenumbers.append(str(row['addr:housenumber']))
+
+        # Erstelle für jede Hausnummer eine eigene Zeile
+        rows = []
+        for hn in housenumbers:
+            new_row = row.copy()
+            new_row['addr:housenumber'] = hn
+            rows.append(new_row)
+
+        return rows
+
+    def get_overpass_housenumbers(self, gemeinde_schluessel):
+        api = overpass.API()
+        query = f"""
+        area["boundary"="administrative"]
+	        ["de:amtlicher_gemeindeschluessel"="{gemeinde_schluessel}"]
+            ->.searchArea;
+        #area["name"="{stadt}"]->.a;
+        (
+            nwr(area.a)
+                ["addr:housenumber"]
+                ["addr:street"];
+        );
+        """
+
+        print("load overpass data")
+        overpass_result = api.get(query, verbosity='geom')
+        print("overpass to geopandas")
+        overpass_gdf = gpd.GeoDataFrame.from_features(overpass_result['features'])
+        # Erstelle eine separate Zeile für jede Hausnummer in 'overpass_gdf'
+        # separate Komma-separierten
+        print("split multi housenumbers commaseparate")
+        comma_mask = overpass_gdf['addr:housenumber'].str.contains(',')
+        split_overpass_gdf = overpass_gdf[comma_mask].copy()
+        split_overpass_gdf['addr:housenumber'] = split_overpass_gdf['addr:housenumber'].str.split(',')
+        split_overpass_gdf = split_overpass_gdf.explode('addr:housenumber')
+        overpass_gdf = pd.concat([overpass_gdf[~comma_mask], split_overpass_gdf], ignore_index=True)
+
+        print('split multi housenumbers -')
+        range_mask = overpass_gdf['addr:housenumber'].str.contains('-')
+        range_overpass_gdf = overpass_gdf[range_mask].copy()
+        range_overpass_gdf['addr:housenumber'] = range_overpass_gdf['addr:housenumber'].apply(
+            lambda x: list(range(int(x.split('-')[0]), int(x.split('-')[1])+1)))
+        range_overpass_gdf = range_overpass_gdf.explode('addr:housenumber')
+        overpass_gdf = pd.concat(
+            [overpass_gdf[~range_mask], range_overpass_gdf], ignore_index=True)    
+        print('done')
+        return overpass_gdf[['addr:street', 'addr:housenumber', 'geometry']]
+
+    def get_diff_hausnumbers(self, data1, data2):
+        # Überprüfen, ob die erforderlichen Spalten vorhanden sind
+        if 'addr:street' not in data1.columns or 'addr:housenumber' not in data1.columns:
+            raise ValueError("data1 fehlen erforderliche Spalten 'addr:street' oder 'addr:housenumber'")
+        if 'addr:street' not in data2.columns or 'addr:housenumber' not in data2.columns:
+            raise ValueError("data2 fehlen erforderliche Spalten 'addr:street' oder 'addr:housenumber'")
+
+        data1['geometry'] = data1.geometry.centroid
+        data2['geometry'] = data2.geometry.centroid
+
+        gdf1 = gpd.GeoDataFrame(data1)
+        gdf2 = gpd.GeoDataFrame(data2)
+
+        # Merge der GeoDataFrames basierend auf 'addr:street' und 'addr:housenumber'
+        merged = pd.merge(gdf1, gdf2, on=['addr:street', 'addr:housenumber'], how='outer', suffixes=('_gdf1', '_gdf2'), indicator=True)
+        merged['geometry'] = merged['geometry_gdf1'].combine_first(merged['geometry_gdf2'])
+
+        # Filtern nach Zeilen, die nur in einem der beiden DataFrames vorhanden sind
+        only_in_gdf1 = merged[merged['_merge'] == 'left_only'].drop(columns=['_merge'])
+        only_in_gdf2 = merged[merged['_merge'] == 'right_only'].drop(columns=['_merge'])
+        only_in_gdf1['comment'] = 'only in alkis'
+        only_in_gdf2['comment'] = 'only in osm'
+
+        # Ergebnis-GeoDataFrames
+        result = gpd.GeoDataFrame(pd.concat([only_in_gdf1, only_in_gdf2], ignore_index=True))
+
+        print(result)
+        return result
+
 
 
 if __name__ == '__main__':
@@ -169,14 +303,9 @@ if __name__ == '__main__':
 
     keys = ['gemeinden', 'strassen']
     file_paths = {}
-
-    alkis_download_dir = 'download/alkis'
-    if not os.path.exists(alkis_download_dir):
-        os.makedirs(alkis_download_dir) 
-    
     for key in keys:
         print(f'start import {key}')
-        file_paths[key] = f'{alkis_download_dir}/{key}.xml'
+        file_paths[key] = f'download/alkis/{key}.xml'
         if not os.path.exists(file_paths[key]):
             gdf_streets = streets.get_wfs_nrw(key, gemeinde='Ratingen')
             filter_list = {
@@ -199,24 +328,15 @@ if __name__ == '__main__':
     gpd_gemeinden = gpd.read_file(file_paths['gemeinden']).query("land == 5")
     gpd_strassen = gpd.read_file(file_paths['strassen'])
     gpd_gebaeude = streets.gebref()
-    gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
-    gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
 
-    gemeinde_name_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
-    #gemeinde_name_list = ['Duisburg', 'Düsseldorf']
+    #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
+    #gemeinde_name_list = ['Düsseldorf', 'Köln', 'Mönchengladbach', 'Essen', 'Duisburg', 'Ratingen']
+    gemeinde_name_list = ['Ratingen']
     gemeinde_list = gpd_gemeinden[gpd_gemeinden['bezeichnung'].isin(gemeinde_name_list)]
     print(gemeinde_list)
 
-    export_strassenschluessel_csv = './export/strassenschluessel_csv'
-    if not os.path.exists(export_strassenschluessel_csv):
-        os.makedirs(export_strassenschluessel_csv)
-
-    export_strassenschluessel_json = './export/strassenschluessel_json'
-    if not os.path.exists(export_strassenschluessel_json):
-        os.makedirs(export_strassenschluessel_json)
-
     #gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
-    for index, gmd_row in gemeinde_list.sort_values(by='bezeichnung').iterrows():
+    for index, gmd_row in gemeinde_list.iterrows():
         gemeinde = gmd_row['bezeichnung']
         print(f'progress {gemeinde}')
         gpd_strasse = gpd_strassen[
@@ -239,21 +359,43 @@ if __name__ == '__main__':
         gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
 
         # Füge die ersten Koordinaten den Straßendaten hinzu
+        gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
+        gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
         gpd_strasse['geometry'] = gpd_strasse['strassenschluessel'].map(gebaeude_erste_koordinaten['mittelpunkt'])
 
         filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
-        filtered_strasse.drop_duplicates('strassenschluessel')
-  
+        print(gpd_gebaeude)
+        print(gpd_strasse)
+        print(filtered_strasse)
+            
         # save as csv 
         gemeinde_clean = streets.cleanup_text(gemeinde)
-
-        csv_file = f'{export_strassenschluessel_csv}/{gemeinde_clean}.csv'
+        csv_file = f'./export/strassenschluessel_csv/{gemeinde_clean}.csv'
         print(f'save file {csv_file}')
         #print(filtered_strasse)
         filtered_strasse.to_csv(csv_file, sep=';', index=False)
 
-        # export as json
-        json_file = f'{export_strassenschluessel_json}/{gemeinde_clean}.json'
+        # export as json#
+        json_file = f'./export/strassenschluessel_json/{gemeinde_clean}.json'
         print(f'save file {json_file}')
-        filtered_strasse.sort_values(by='strassenschluessel').to_file(json_file)
+        gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
             
+        ####################
+        # Housenumbers
+        gpd_overpass = gpd.GeoDataFrame(streets.get_overpass_housenumbers(gmd_row['schluesselGesamt']))
+        #print(gpd_overpass[['addr:street', 'addr:housenumber', 'geometry']])
+
+        alkis_gebaeude_gemeinde_gdf = gpd_gebaeude[
+            (gpd_gebaeude.land == gmd_row['land'])
+            & (gpd_gebaeude.regierungsbezirk == gmd_row['regierungsbezirk'])
+            & (gpd_gebaeude.kreis == gmd_row['kreis'])
+            & (gpd_gebaeude.gemeinde == gmd_row['gemeinde'])
+        ].copy()
+        missing_buildings = streets.get_diff_hausnumbers(alkis_gebaeude_gemeinde_gdf, gpd_overpass)
+        hausnummer_json_file = f'./export/hausnummern_json/{gemeinde_clean}.json'
+        print(f'save file {json_file}')
+        print(missing_buildings)
+        missing_buildings[['addr:street', 'addr:housenumber', 'comment', 'geometry']].sort_values(by='addr:street').to_file(hausnummer_json_file)
+        print('done')
+        
+
