@@ -1,0 +1,6 @@
+geopandas
+owslib
+overpass
+fiona
+shapely
+tqdm
