@@ -213,6 +213,14 @@ if __name__ == '__main__':
     gemeinde_list = gpd_gemeinden[gpd_gemeinden['bezeichnung'].isin(gemeinde_name_list)]
     print(gemeinde_list)
 
+    export_strassenschluessel_csv = './export/strassenschluessel_csv'
+    if not os.path.exists(export_strassenschluessel_csv):
+        os.makedirs(export_strassenschluessel_csv)
+
+    export_strassenschluessel_json = './export/strassenschluessel_json'
+    if not os.path.exists(export_strassenschluessel_json):
+        os.makedirs(export_strassenschluessel_json)
+
     #gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
     for index, gmd_row in gemeinde_list.iterrows():
         gemeinde = gmd_row['bezeichnung']
@@ -248,13 +256,14 @@ if __name__ == '__main__':
             
         # save as csv 
         gemeinde_clean = streets.cleanup_text(gemeinde)
-        csv_file = f'./export/strassenschluessel_csv/{gemeinde_clean}.csv'
+
+        csv_file = f'{export_strassenschluessel_csv}/{gemeinde_clean}.csv'
         print(f'save file {csv_file}')
         #print(filtered_strasse)
         filtered_strasse.to_csv(csv_file, sep=';', index=False)
 
-        # export as json#
-        json_file = f'./export/strassenschluessel_json/{gemeinde_clean}.json'
+        # export as json
+        json_file = f'{export_strassenschluessel_json}/{gemeinde_clean}.json'
         print(f'save file {json_file}')
         gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
             
