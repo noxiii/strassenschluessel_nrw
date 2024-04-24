@@ -202,9 +202,8 @@ if __name__ == '__main__':
     gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
     gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
 
-    #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
-    #gemeinde_name_list = ['Düsseldorf', 'Köln', 'Mönchengladbach', 'Essen', 'Duisburg', 'Ratingen']
-    gemeinde_name_list = ['Ratingen']
+    gemeinde_name_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
+    #gemeinde_name_list = ['Duisburg', 'Düsseldorf']
     gemeinde_list = gpd_gemeinden[gpd_gemeinden['bezeichnung'].isin(gemeinde_name_list)]
     print(gemeinde_list)
 
