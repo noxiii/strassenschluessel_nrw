@@ -199,6 +199,8 @@ if __name__ == '__main__':
     gpd_gemeinden = gpd.read_file(file_paths['gemeinden']).query("land == 5")
     gpd_strassen = gpd.read_file(file_paths['strassen'])
     gpd_gebaeude = streets.gebref()
+    gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
+    gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
 
     #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
     #gemeinde_name_list = ['Düsseldorf', 'Köln', 'Mönchengladbach', 'Essen', 'Duisburg', 'Ratingen']
@@ -238,8 +240,6 @@ if __name__ == '__main__':
         gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
 
         # Füge die ersten Koordinaten den Straßendaten hinzu
-        gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
-        gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
         gpd_strasse['geometry'] = gpd_strasse['strassenschluessel'].map(gebaeude_erste_koordinaten['mittelpunkt'])
 
         filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
