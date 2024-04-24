@@ -23,21 +23,6 @@ class streets_of_nrw:
         self.strassen = {}
         self.gebaeuden = []
 
-    def close(self):
-        self.con.close()
-
-    def speicher_strassen(self):
-        print("Speicher Straßen")
-        for gemeinde in self.gemeinden:
-
-            name = self.cleanup_text(gemeinde['name'])
-            gemeinde_schluessel = gemeinde['schluessel']
-            strassen = sorted(set(self.strassen[gemeinde_schluessel]))
-            print(f"Speicher {name} mit {len(strassen)} Straßen")
-            with open(f"strassenschluessel/{name}.csv", "w") as file:
-                for string in strassen:
-                    file.write(f"{string}\n")
-
     def cleanup_text(self, text):
         # Leerzeichen durch Unterstriche ersetzen
         text = re.sub(r'\s', '_', text)
