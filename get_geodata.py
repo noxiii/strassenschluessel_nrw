@@ -329,59 +329,73 @@ if __name__ == '__main__':
     gpd_strassen = gpd.read_file(file_paths['strassen'])
     gpd_gebaeude = streets.gebref()
 
-    gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
-    for gemeinde in gemeinde_list:
+    #gemeinde_list = sorted(gpd_gemeinden['bezeichnung'].tolist())
+    #gemeinde_name_list = ['Düsseldorf', 'Köln', 'Mönchengladbach', 'Essen', 'Duisburg', 'Ratingen']
+    gemeinde_name_list = ['Ratingen']
+    gemeinde_list = gpd_gemeinden[gpd_gemeinden['bezeichnung'].isin(gemeinde_name_list)]
+    print(gemeinde_list)
+
+    #gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
+    for index, gmd_row in gemeinde_list.iterrows():
+        gemeinde = gmd_row['bezeichnung']
         print(f'progress {gemeinde}')
-        gpd_gemeinde = gpd_gemeinden[gpd_gemeinden.bezeichnung == gemeinde]
-        for index, gmd_row in gpd_gemeinde.iterrows():
-            gpd_strasse = gpd_strassen[
-                (gpd_strassen.land == gmd_row['land'])
-                & (gpd_strassen.regierungsbezirk == gmd_row['regierungsbezirk'])
-                & (gpd_strassen.kreis == gmd_row['kreis'])
-                & (gpd_strassen.gemeinde == gmd_row['gemeinde'])
-            ].copy()
+        gpd_strasse = gpd_strassen[
+            (gpd_strassen.land == gmd_row['land'])
+            & (gpd_strassen.regierungsbezirk == gmd_row['regierungsbezirk'])
+            & (gpd_strassen.kreis == gmd_row['kreis'])
+            & (gpd_strassen.gemeinde == gmd_row['gemeinde'])
+        ].copy()
 
-            def create_schluessel(row):
-                land = str(row['land']).zfill(2)
-                rgbz = str(int(row['regierungsbezirk'])).zfill(1)
-                kreis = str(row['kreis']).zfill(2)
-                gmd_verband = "0000"
-                gemeinde = str(row['gemeinde']).zfill(3)
-                lage = str(row['lage']).zfill(5)
-                return f"{land}{rgbz}{kreis}{gmd_verband}{gemeinde}{lage}"
+        def create_schluessel(row):
+            land = str(row['land']).zfill(2)
+            rgbz = str(int(row['regierungsbezirk'])).zfill(1)
+            kreis = str(row['kreis']).zfill(2)
+            gmd_verband = "0000"
+            gemeinde = str(row['gemeinde']).zfill(3)
+            lage = str(row['lage']).zfill(5)
+            return str.strip(f"{land}{rgbz}{kreis}{gmd_verband}{gemeinde}{lage}")
 
-            # Neues Feld "schlüssel" erstellen
-            gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
-            filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung']].sort_values(by='strassenschluessel')
+        # Neues Feld "schlüssel" erstellen
+        gpd_strasse['strassenschluessel'] = gpd_strasse.apply(create_schluessel, axis=1)
+
+        # Füge die ersten Koordinaten den Straßendaten hinzu
+        gpd_gebaeude['mittelpunkt'] = gpd_gebaeude.geometry.centroid
+        gebaeude_erste_koordinaten = gpd_gebaeude.groupby('strassenschluessel').first()
+        gpd_strasse['geometry'] = gpd_strasse['strassenschluessel'].map(gebaeude_erste_koordinaten['mittelpunkt'])
+
+        filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
+        print(gpd_gebaeude)
+        print(gpd_strasse)
+        print(filtered_strasse)
             
-            # save as csv 
-            gemeinde_clean = streets.cleanup_text(gemeinde)
-            csv_file = f'./export/strassenschluessel_csv/{gemeinde_clean}.csv'
-            print(f'save file {csv_file}')
-            print(filtered_strasse)
-            filtered_strasse.to_csv(csv_file, sep=';', index=False)
+        # save as csv 
+        gemeinde_clean = streets.cleanup_text(gemeinde)
+        csv_file = f'./export/strassenschluessel_csv/{gemeinde_clean}.csv'
+        print(f'save file {csv_file}')
+        #print(filtered_strasse)
+        filtered_strasse.to_csv(csv_file, sep=';', index=False)
 
-            # export as json#
-            json_file = f'./export/strassenschluessel_json/{gemeinde_clean}.json'
-            print(f'save file {json_file}')
-            gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
-
-            ####################
-            # Housenumbers
-            gpd_overpass = gpd.GeoDataFrame(streets.get_overpass_housenumbers(gemeinde))
-            #print(gpd_overpass[['addr:street', 'addr:housenumber', 'geometry']])
-
-            alkis_gebaeude_gemeinde_gdf = gpd_gebaeude[
-                (gpd_gebaeude.land == gmd_row['land'])
-                & (gpd_gebaeude.regierungsbezirk == gmd_row['regierungsbezirk'])
-                & (gpd_gebaeude.kreis == gmd_row['kreis'])
-                & (gpd_gebaeude.gemeinde == gmd_row['gemeinde'])
-            ].copy()
-            missing_buildings = streets.get_diff_hausnumbers(alkis_gebaeude_gemeinde_gdf, gpd_overpass)
-            hausnummer_json_file = f'./export/hausnummern_json/{gemeinde_clean}.json'
-            print(f'save file {json_file}')
-            print(missing_buildings)
-            missing_buildings.sort_values(by='addr:street').to_file(hausnummer_json_file)
-            print('done')
+        # export as json#
+        json_file = f'./export/strassenschluessel_json/{gemeinde_clean}.json'
+        print(f'save file {json_file}')
+        gpd_strasse.sort_values(by='strassenschluessel').to_file(json_file)
             
+        ####################
+        # Housenumbers
+        gpd_overpass = gpd.GeoDataFrame(streets.get_overpass_housenumbers(gmd_row['schluesselGesamt']))
+        #print(gpd_overpass[['addr:street', 'addr:housenumber', 'geometry']])
+
+        alkis_gebaeude_gemeinde_gdf = gpd_gebaeude[
+            (gpd_gebaeude.land == gmd_row['land'])
+            & (gpd_gebaeude.regierungsbezirk == gmd_row['regierungsbezirk'])
+            & (gpd_gebaeude.kreis == gmd_row['kreis'])
+            & (gpd_gebaeude.gemeinde == gmd_row['gemeinde'])
+        ].copy()
+        missing_buildings = streets.get_diff_hausnumbers(alkis_gebaeude_gemeinde_gdf, gpd_overpass)
+        hausnummer_json_file = f'./export/hausnummern_json/{gemeinde_clean}.json'
+        print(f'save file {json_file}')
+        print(missing_buildings)
+        missing_buildings[['addr:street', 'addr:housenumber', 'comment', 'geometry']].sort_values(by='addr:street').to_file(hausnummer_json_file)
+        print('done')
+        
 
