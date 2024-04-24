@@ -243,9 +243,7 @@ if __name__ == '__main__':
         gpd_strasse['geometry'] = gpd_strasse['strassenschluessel'].map(gebaeude_erste_koordinaten['mittelpunkt'])
 
         filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
-        print(gpd_gebaeude)
-        print(gpd_strasse)
-        print(filtered_strasse)
+        
             
         # save as csv 
         gemeinde_clean = streets.cleanup_text(gemeinde)
