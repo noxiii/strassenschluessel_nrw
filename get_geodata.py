@@ -243,6 +243,7 @@ if __name__ == '__main__':
         gpd_strasse['geometry'] = gpd_strasse['strassenschluessel'].map(gebaeude_erste_koordinaten['mittelpunkt'])
 
         filtered_strasse = gpd_strasse[['strassenschluessel', 'bezeichnung', 'geometry']].sort_values(by='strassenschluessel')
+        filtered_strasse.drop_duplicates('strassenschluessel')
         
             
         # save as csv 
