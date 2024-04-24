@@ -176,9 +176,14 @@ if __name__ == '__main__':
 
     keys = ['gemeinden', 'strassen']
     file_paths = {}
+
+    alkis_download_dir = 'download/alkis'
+    if not os.path.exists(alkis_download_dir):
+        os.makedirs(alkis_download_dir) 
+    
     for key in keys:
         print(f'start import {key}')
-        file_paths[key] = f'download/alkis/{key}.xml'
+        file_paths[key] = f'{alkis_download_dir}/{key}.xml'
         if not os.path.exists(file_paths[key]):
             gdf_streets = streets.get_wfs_nrw(key, gemeinde='Ratingen')
             filter_list = {
